@@ -11,18 +11,17 @@
 #include "cpu.h"
 
 unsigned short memory[MEMORY_SIZE];
-unsigned short currentMemLocation;
+
 
 int main(int argc, char *argv[])
 {
     char *temp;
 
     CPU_p cpu = malloc(sizeof(CPU_s));
-    cpu->pc = 0;
+    cpu->pc = 1;
 
     // initialize registers with data for testing
 
-    currentMemLocation = 1;
 
     gui(cpu);
 }
@@ -335,9 +334,11 @@ void gui(CPU_p cpu)
     char mesg[] = ">";
     char str[80];
     int i = 1;
-    unsigned int aMemLocation = currentMemLocation;
+
     int flag = 0;
     char *temp;
+    unsigned short currentMemLocation = 0;
+    unsigned short aMemLocation = currentMemLocation;
 
     initscr();                  /* start the curses mode */
 
@@ -361,7 +362,7 @@ void gui(CPU_p cpu)
         while (i < 16)
         {
             mvprintw(4 + i, 28, "x%X:", memory[0] + aMemLocation );
-            mvprintw(4 + i, 35, "x%X", memory[i]);
+            mvprintw(4 + i, 35, "x%X", memory[i+1]);
             aMemLocation++;
             i++;
         }
@@ -374,8 +375,8 @@ void gui(CPU_p cpu)
             i++;
         }
         // specialty regesters
-        mvprintw(14, 3, "PC:x%X", cpu->pc);
-        mvprintw(14, 15, "IR:x%X", cpu->ir);
+        mvprintw(14, 3, "PC:x%X", cpu->pc + memory[0]-1);
+        mvprintw(14, 15, "IR:x%X", cpu->ir.ir);
         mvprintw(15, 3, "MDR:x%X", cpu->mdr);
         mvprintw(15, 15, "MAR:x%X", cpu->mar);
         mvprintw(16, 3, "A:x%X", cpu->alu.A);
