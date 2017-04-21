@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
 
     // initialize registers with data for testing
 
-    currentMemLocation = memory[0];
+    currentMemLocation = 1;
 
     gui(cpu);
 }
@@ -357,10 +357,10 @@ void gui(CPU_p cpu)
         mvprintw(22, 4, "%s", mesg);
 
         //memory
-        i = 1;
+        i = aMemLocation;
         while (i < 16)
         {
-            mvprintw(4 + i, 28, "x%X:", memory[0] + aMemLocation);
+            mvprintw(4 + i, 28, "x%X:", memory[0] + aMemLocation );
             mvprintw(4 + i, 35, "x%X", memory[i]);
             aMemLocation++;
             i++;
@@ -382,7 +382,7 @@ void gui(CPU_p cpu)
         mvprintw(16, 15, "Bx%X", cpu->alu.B);
         mvprintw(17, 3, "CC:");
 
-        i = 0;
+        
 
         mvprintw(22, 4, "%s", mesg);
         getstr(str);
@@ -400,6 +400,7 @@ void gui(CPU_p cpu)
             file = fopen(str, "r");
             if (file)
             {
+                i = 0;
                 while (fread(str, 1, 6, file) == 6)
                 {
                     memory[i] = strtol(str, &temp, 16);
@@ -407,8 +408,8 @@ void gui(CPU_p cpu)
                 }
                 move(23, 4);
                 clrtoeol();
-                mvprintw(23, 4, "File loading successful");
-                currentMemLocation = memory[0];
+                mvprintw(23, 4, "File loading successful starting at x%X",memory[0]);
+                currentMemLocation;
             }
             else
             {
