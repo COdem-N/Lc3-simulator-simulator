@@ -4,6 +4,9 @@
 	Programmer: George Mobus
 	Date: 4/18/17
 	Version: 1.0
+
+	Edited: Carter Odem, Mamadou Barry
+	Date: 4/20/2017
 	
 	Simulates the simulation of the LC-3 computer in Patt & Patel
 */
@@ -443,14 +446,12 @@ int textgui(CPU_p cpu, Register mem[])
 
 int main(int argc, char *argv[])
 {
-    // trap for failure to pass an argument
-    // you can define a simple memory module here for this program
+ m
     Register memory[100];
 
     CPU_p cpu = (CPU_p)malloc(sizeof(CPU_s));
     cpu->alu = (ALU_p)malloc(sizeof(ALU_s));
 
-    //printf("Mem[0] = %04X\n", memory[0]);
 
     controller(cpu, memory);
 }
