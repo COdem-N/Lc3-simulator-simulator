@@ -17,7 +17,9 @@
 #define TRAP 0xF
 #define LD 0x2
 #define ST 0x3
-#define JMP 0xD
+#define JMP 0xC
+#define JSRR 0X4
+#define LEA 0xE
 // others to follow
 
 #define OPCODE_MASK 0xF000
@@ -56,7 +58,7 @@
 typedef unsigned short Register;
 
 typedef struct alu_s {
-	Register A, B, R;	// the real lc-3 does not have an R register, but needed to hold results in simulation
+	Register A, B, R;	
 } ALU_s;
 
 typedef ALU_s * ALU_p;
@@ -69,5 +71,9 @@ typedef struct cpu_s {
 } CPU_s;
 
 typedef CPU_s * CPU_p;
+
+void guioutput(CPU_p cpu, Register mem[], char *str,int y,int x);
+void traproutine(CPU_p cpu, Register mem[],unsigned int immed_offset);
+int textgui(CPU_p cpu, Register mem[]);
 
 
