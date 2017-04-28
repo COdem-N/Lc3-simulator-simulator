@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ncurses.h>
+#include <unistd.h>
 #include "lc3.h"
 
 Register sext(Register immed, int extend)
@@ -143,6 +144,7 @@ int controller(CPU_p cpu, Register mem[])
 		break;
 	    case LEA:
 		immed_offset = sext(cpu->ir & OFFSET9_MASK, EXT9);
+		effective_addr = immed_offset + cpu->pc;
 		break;
 	    case LD:
 	    case ST:
@@ -150,6 +152,9 @@ int controller(CPU_p cpu, Register mem[])
 		immed_offset = sext(cpu->ir & OFFSET9_MASK, EXT9);
 		effective_addr = immed_offset + cpu->pc;
 		cpu->mar = effective_addr;
+		break;
+		case STR:
+		immed_offset = cpu->ir & OFFSET6_MASK;
 		break;
 	    case JMP: // nothing needed
 		break;
@@ -186,6 +191,10 @@ int controller(CPU_p cpu, Register mem[])
 		break;
 	    case ST:
 		cpu->mdr = cpu->reg_file[dr]; // in this case dr is actually the source reg
+		break;
+		case STR:
+		cpu->mar = immed_offset + cpu->reg_file[sr1];
+		cpu->mdr = dr;
 		break;
 	    case JMP:
 		// nothing
@@ -259,6 +268,9 @@ int controller(CPU_p cpu, Register mem[])
 	    case ST:
 		mem[cpu->mar - 0x3000] = cpu->mdr;
 		break;
+		case STR:
+		mem[cpu->mar] = cpu->mdr;
+		break;
 	    case JMP:
 		// nothing
 		break;
@@ -285,13 +297,16 @@ int textgui(CPU_p cpu, Register mem[])
     char *temp;
     int flag = 0;
     unsigned short currentMemLocation = 0;
-    unsigned short aMemLocation = currentMemLocation;
+    unsigned short aMemLocation = 0;
 
     initscr(); /* start the curses mode */
 
     mvprintw(0, 10, "Welcome To the Lc3 Simulator^2");
     mvprintw(1, 5, "Registers");
     mvprintw(1, 30, "Memory");
+    move(20, 4);
+    clrtoeol();
+    mvprintw(20, 4, "Please enter a command");
 
     //instructions
     mvprintw(18, 3, "[1.Load]");
@@ -302,12 +317,16 @@ int textgui(CPU_p cpu, Register mem[])
     while (flag == 0)
     {
 
-	aMemLocation = currentMemLocation;
+	aMemLocation = 0;
 
 	//memory
 	count = 0;
 	i = aMemLocation;
-
+	if (cpu->pc - mem[0] > 15)
+	{
+	    i += 16;
+	}
+	aMemLocation += i;
 	while (count < 16)
 	{
 	    move(2 + count, 27);
@@ -318,10 +337,8 @@ int textgui(CPU_p cpu, Register mem[])
 	    count++;
 	    i++;
 	}
-	if (cpu->pc - mem[0] + 2 < 18)
-	{
-	    mvprintw((cpu->pc - mem[0]) + 2, 27, ">");
-	}
+
+	mvprintw(((cpu->pc - mem[0]) % 16) + 2, 27, ">");
 
 	//Registers
 	i = 0;
@@ -357,7 +374,7 @@ int textgui(CPU_p cpu, Register mem[])
 	{
 	    move(20, 4);
 	    clrtoeol();
-	    mvprintw(20, 4, "Please enter a text file");
+	    mvprintw(20, 4, "Please enter a .hex file");
 	    move(19, 4);
 	    clrtoeol();
 	    mvprintw(19, 4, "%s", mesg);
@@ -386,14 +403,14 @@ int textgui(CPU_p cpu, Register mem[])
 	}
 	else if (str[0] == '3')
 	{
-	 
-	    
-		move(20, 4);
-		clrtoeol();
-		mvprintw(20, 4, "Steping through");
 
 	    move(20, 4);
+	    clrtoeol();
+	    mvprintw(20, 4, "COPMUTING:  x%04X", mem[cpu->pc - mem[0] + 1]);
 
+	    move(21, 4);
+	    refresh();
+	    sleep(1);
 	    return 0;
 	}
 	else if (str[0] == '5')
@@ -425,7 +442,24 @@ int textgui(CPU_p cpu, Register mem[])
 		{
 		    move(20, 4);
 		    clrtoeol();
-		    mvprintw(20, 4, "moving to location %X", currentMemLocation + mem[0]);
+		    mvprintw(20, 4, "moving to location %X press return to continue", currentMemLocation + mem[0]);
+		    i = currentMemLocation;
+		    count = 0;
+		    while (count < 16)
+		    {
+			move(2 + count, 27);
+			clrtoeol();
+			mvprintw(2 + count, 28, "x%04X:", (mem[0] + currentMemLocation));
+			mvprintw(2 + count, 35, "x%04X", mem[i + 1]);
+			currentMemLocation++;
+			count++;
+			i++;
+		    }
+
+		    move(19, 4);
+		    clrtoeol();
+		    mvprintw(19, 4, "%s", mesg);
+		    getstr(str);
 		}
 	    }
 	}
@@ -448,8 +482,6 @@ int textgui(CPU_p cpu, Register mem[])
 	    mvprintw(20, 4, "Input error try again");
 	}
     }
-
-	
 }
 
 void traproutine(CPU_p cpu, Register mem[], unsigned int immed_offset)
@@ -469,27 +501,31 @@ void traproutine(CPU_p cpu, Register mem[], unsigned int immed_offset)
     else if (immed_offset == 0x21) //out
     {
 
-	str[0] = (char)cpu->reg_file[0];
+	str[0] = mem[cpu->reg_file[0] - mem[0]];
 	//guioutput(cpu, mem, str);
 	printw("%c", str[0]);
     }
     else if (immed_offset == 0x22) //puts
     {
 
-	str[0] = mem[cpu->reg_file[0] + i];
+	i = cpu->reg_file[0] - mem[0] + 1;
+	str[0] = mem[i];
 
-	while (str[0] != '\0')
+	printw("output: ");
+
+	while (str[0] != 0)
 	{
-	    printw("%c", str[i]);
-	    str[0] = mem[cpu->reg_file[0] + i];
+	    printw("%c", str[0]);
+
 	    i++;
+	    str[0] = mem[i];
 	}
     }
     else if (immed_offset == 0x25) //HALT
     {
-		move(20, 4);
-		clrtoeol();
-		mvprintw(20, 4, "HALT HAS BEEN REACHED");
+	move(20, 4);
+	clrtoeol();
+	mvprintw(20, 4, "HALT HAS BEEN REACHED");
     }
 }
 void guioutput(CPU_p cpu, Register mem[], char *str, int y, int x)

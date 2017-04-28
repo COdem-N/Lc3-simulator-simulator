@@ -20,6 +20,7 @@
 #define JMP 0xC
 #define JSRR 0X4
 #define LEA 0xE
+#define STR 0x7
 // others to follow
 
 #define OPCODE_MASK 0xF000
