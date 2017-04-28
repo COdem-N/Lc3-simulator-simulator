@@ -21,6 +21,7 @@
 #define JSRR 0X4
 #define LEA 0xE
 #define STR 0x7
+#define LDR 0x6
 // others to follow
 
 #define OPCODE_MASK 0xF000

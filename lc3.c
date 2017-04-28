@@ -146,6 +146,9 @@ int controller(CPU_p cpu, Register mem[])
 		immed_offset = sext(cpu->ir & OFFSET9_MASK, EXT9);
 		effective_addr = immed_offset + cpu->pc;
 		break;
+		case LDR:
+		immed_offset = cpu->ir & OFFSET6_MASK;
+		break;
 	    case LD:
 	    case ST:
 	    case BR:
@@ -188,6 +191,10 @@ int controller(CPU_p cpu, Register mem[])
 		break;
 	    case LD:
 		cpu->mdr = mem[cpu->mar - 0x3000];
+		break;
+		case LDR:
+		cpu->mar = immed_offset + cpu->reg_file[sr1];
+		cpu->mdr = mem[cpu->mar];
 		break;
 	    case ST:
 		cpu->mdr = cpu->reg_file[dr]; // in this case dr is actually the source reg
@@ -264,6 +271,9 @@ int controller(CPU_p cpu, Register mem[])
 		break;
 	    case LEA:
 		cpu->reg_file[dr] = effective_addr;
+		break;
+		case LDR:
+		cpu->reg_file[dr] = cpu->mdr;
 		break;
 	    case ST:
 		mem[cpu->mar - 0x3000] = cpu->mdr;
