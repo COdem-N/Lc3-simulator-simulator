@@ -75,7 +75,7 @@ typedef struct cpu_s {
 typedef CPU_s * CPU_p;
 
 void guioutput(CPU_p cpu, Register mem[], char *str,int y,int x);
-void traproutine(CPU_p cpu, Register mem[],unsigned int immed_offset);
+int traproutine(CPU_p cpu, Register mem[],unsigned int immed_offset);
 int textgui(CPU_p cpu, Register mem[]);
 
 

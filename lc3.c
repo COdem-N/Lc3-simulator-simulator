@@ -84,7 +84,7 @@ int controller(CPU_p cpu, Register mem[])
 
     int state = FETCH;
 
-    while (flag == 0)
+    while (flag != 1)
     { // efficient endless loop
 	switch (state)
 	{
@@ -92,7 +92,10 @@ int controller(CPU_p cpu, Register mem[])
 	case FETCH: // microstates 18, 33, 35 in the book
 		    //printf("Here in FETCH\n");
 		    // microstates
-	    flag = textgui(cpu, mem);
+	    if (flag == 0)
+	    {
+		flag = textgui(cpu, mem);
+	    }
 
 	    cpu->mar = cpu->pc;
 	    cpu->pc++;
@@ -117,9 +120,9 @@ int controller(CPU_p cpu, Register mem[])
 	    sr2 = cpu->ir & SR2_MASK;
 	    bit5 = (cpu->ir & BIT5_MASK ? 1 : 0);
 
-	    ben = (((cpu->ir & NEG_BIT_MASK) >> 11) & ((cpu->psr & NEG_FLAG_MASK) >> 2)) |
-		  (((cpu->ir & ZERO_BIT_MASK) >> 11) & ((cpu->psr & ZERO_FLAG_MASK) >> 1)) |
-		  (((cpu->ir & POS_BIT_MASK) >> 11) & (cpu->psr & POS_FLAG_MASK));
+	    ben = (((dr & NEG_FLAG_MASK) >> 2) & ((cpu->psr & NEG_FLAG_MASK) >> 2)) |
+		  (((dr & ZERO_FLAG_MASK) >> 1) & ((cpu->psr & ZERO_FLAG_MASK) >> 1)) |
+		  ((dr & POS_FLAG_MASK) & (cpu->psr & POS_FLAG_MASK));
 
 	    state = EVAL_ADDR;
 	    //printf("opcode = %02X, dr = %02X, sr1 = %02X, sr2 = %02X\n", opcode, dr, sr1, sr2);
@@ -146,8 +149,8 @@ int controller(CPU_p cpu, Register mem[])
 		immed_offset = sext(cpu->ir & OFFSET9_MASK, EXT9);
 		effective_addr = immed_offset + cpu->pc;
 		break;
-		case LDR:
-		immed_offset = cpu->ir & OFFSET6_MASK;
+	    case LDR:
+		immed_offset = sext(cpu->ir & OFFSET6_MASK, EXT6);
 		break;
 	    case LD:
 	    case ST:
@@ -156,7 +159,7 @@ int controller(CPU_p cpu, Register mem[])
 		effective_addr = immed_offset + cpu->pc;
 		cpu->mar = effective_addr;
 		break;
-		case STR:
+	    case STR:
 		immed_offset = cpu->ir & OFFSET6_MASK;
 		break;
 	    case JMP: // nothing needed
@@ -192,16 +195,16 @@ int controller(CPU_p cpu, Register mem[])
 	    case LD:
 		cpu->mdr = mem[cpu->mar - 0x3000];
 		break;
-		case LDR:
-		cpu->mar = immed_offset + cpu->reg_file[sr1];
+	    case LDR:
+		cpu->mar = (immed_offset + cpu->reg_file[sr1]) - mem[0] + 1;
 		cpu->mdr = mem[cpu->mar];
 		break;
 	    case ST:
 		cpu->mdr = cpu->reg_file[dr]; // in this case dr is actually the source reg
 		break;
-		case STR:
-		cpu->mar = immed_offset + cpu->reg_file[sr1];
-		cpu->mdr = dr;
+	    case STR:
+		cpu->mar = immed_offset + cpu->reg_file[sr1] - mem[0] + 1;
+		cpu->mdr = cpu->reg_file[dr];
 		break;
 	    case JMP:
 		// nothing
@@ -229,7 +232,10 @@ int controller(CPU_p cpu, Register mem[])
 		cpu->alu->R = ~cpu->alu->A;
 		break;
 	    case TRAP:
-		traproutine(cpu, mem, immed_offset);
+		if (traproutine(cpu, mem, immed_offset) == -1)
+		{
+		    flag = 0;
+		}
 		break;
 	    case LD:
 		break;
@@ -247,7 +253,6 @@ int controller(CPU_p cpu, Register mem[])
 		    cpu->pc = effective_addr;
 		break;
 	    }
-	    printStatus(cpu, mem);
 	    state = STORE;
 	    break;
 	case STORE: // Look at ST. Microstate 16 is the store to memory
@@ -271,15 +276,20 @@ int controller(CPU_p cpu, Register mem[])
 		break;
 	    case LEA:
 		cpu->reg_file[dr] = effective_addr;
+		setCC(cpu);
 		break;
-		case LDR:
-		cpu->reg_file[dr] = cpu->mdr;
+	    case LDR:
+		cpu->main_bus = cpu->mdr;
+		cpu->reg_file[dr] = cpu->main_bus;
+		setCC(cpu);
 		break;
 	    case ST:
 		mem[cpu->mar - 0x3000] = cpu->mdr;
+		setCC(cpu);
 		break;
-		case STR:
+	    case STR:
 		mem[cpu->mar] = cpu->mdr;
+		setCC(cpu);
 		break;
 	    case JMP:
 		// nothing
@@ -309,26 +319,15 @@ int textgui(CPU_p cpu, Register mem[])
     unsigned short currentMemLocation = 0;
     unsigned short aMemLocation = 0;
 
-    initscr(); /* start the curses mode */
-
     mvprintw(0, 10, "Welcome To the Lc3 Simulator^2");
     mvprintw(1, 5, "Registers");
     mvprintw(1, 30, "Memory");
-    move(20, 4);
-    clrtoeol();
-    mvprintw(20, 4, "Please enter a command");
-
     //instructions
-    mvprintw(18, 3, "[1.Load]");
-    mvprintw(18, 12, "[3.Step]");
-    mvprintw(18, 21, "[5.Display Memory] [9.exit]");
-
+    mvprintw(18, 3, "[1.Load][2.Run][3.Step][5.Display Memory][9.exit]");
     // loop the Text based gui
     while (flag == 0)
     {
-
 	aMemLocation = 0;
-
 	//memory
 	count = 0;
 	i = aMemLocation;
@@ -347,9 +346,7 @@ int textgui(CPU_p cpu, Register mem[])
 	    count++;
 	    i++;
 	}
-
 	mvprintw(((cpu->pc - mem[0]) % 16) + 2, 27, ">");
-
 	//Registers
 	i = 0;
 	while (i < 8)
@@ -358,7 +355,6 @@ int textgui(CPU_p cpu, Register mem[])
 	    mvprintw(2 + i, 12, "x%04X", cpu->reg_file[i]);
 	    i++;
 	}
-
 	// specialty regesters
 	mvprintw(13, 3, "PC:x%04X", cpu->pc);
 	mvprintw(13, 15, "IR:x%04X", cpu->ir);
@@ -373,7 +369,6 @@ int textgui(CPU_p cpu, Register mem[])
 	mvprintw(16, 7, "N:%d", n);
 	mvprintw(16, 11, "P:%d", p);
 	mvprintw(16, 15, "Z:%d", z);
-
 	// get user input for instructions
 	move(19, 4);
 	clrtoeol();
@@ -411,16 +406,21 @@ int textgui(CPU_p cpu, Register mem[])
 		mvprintw(20, 4, "##Error404: File Not Found");
 	    }
 	}
+	else if (str[0] == '2')
+	{
+	    move(20, 4);
+	    clrtoeol();
+	    mvprintw(20, 4, "Running");
+	    move(21, 4);
+	    return 2;
+	}
 	else if (str[0] == '3')
 	{
 
 	    move(20, 4);
 	    clrtoeol();
-	    mvprintw(20, 4, "COPMUTING:  x%04X", mem[cpu->pc - mem[0] + 1]);
-
+	    mvprintw(20, 4, "Please enter a command just ran x%04X", mem[cpu->pc - mem[0] + 1]);
 	    move(21, 4);
-	    refresh();
-	    sleep(1);
 	    return 0;
 	}
 	else if (str[0] == '5')
@@ -494,7 +494,7 @@ int textgui(CPU_p cpu, Register mem[])
     }
 }
 
-void traproutine(CPU_p cpu, Register mem[], unsigned int immed_offset)
+int traproutine(CPU_p cpu, Register mem[], unsigned int immed_offset)
 {
     char str[50];
     unsigned int ch;
@@ -512,36 +512,57 @@ void traproutine(CPU_p cpu, Register mem[], unsigned int immed_offset)
     {
 
 	str[0] = mem[cpu->reg_file[0] - mem[0]];
-	//guioutput(cpu, mem, str);
+	
 	printw("%c", str[0]);
     }
     else if (immed_offset == 0x22) //puts
     {
+		int k = 0;
+		int count = 0;
+	//addstr("output: ");
+
+
+	//mvinchstr(21, 4, chstr);
+
+//	mvaddchstr(22, 4, chstr);
+	move(21, 4);
+	char c = inch();
+	while (count < 25)
+	{
+	 mvaddch(22,4+k,c);
+	 k++;
+	 move(21, 4+k);
+	 c = inch();
+	 count++;
+	}
+
+	move(21, 4);
 
 	i = cpu->reg_file[0] - mem[0] + 1;
 	str[0] = mem[i];
 
-	printw("output: ");
+	addstr("output:");
 
 	while (str[0] != 0)
 	{
-	    printw("%c", str[0]);
+	    addch(str[0]);
 
 	    i++;
 	    str[0] = mem[i];
 	}
+	move(21, 4);
     }
     else if (immed_offset == 0x25) //HALT
     {
 	move(20, 4);
 	clrtoeol();
 	mvprintw(20, 4, "HALT HAS BEEN REACHED");
+
+	return -1;
     }
+    return 0;
 }
-void guioutput(CPU_p cpu, Register mem[], char *str, int y, int x)
-{
-    mvprintw(y, x, "%s", str);
-}
+
 int main(int argc, char *argv[])
 {
 
@@ -549,6 +570,10 @@ int main(int argc, char *argv[])
 
     CPU_p cpu = (CPU_p)malloc(sizeof(CPU_s));
     cpu->alu = (ALU_p)malloc(sizeof(ALU_s));
-
+    initscr(); /* start the curses mode */
+    mvprintw(20, 4, "Please enter a command");
+    refresh();
     controller(cpu, memory);
+
+    endwin();
 }
