@@ -62,7 +62,8 @@
 #define ZERO_BIT_MASK 0x0400
 #define POS_BIT_MASK 0x0200
 
-#define messageline 20
+#define messageline 2
+#define DEFAULT_X 2
 
 typedef unsigned short Register;
 
@@ -96,5 +97,7 @@ typedef RES * RES_p;
 
 int traproutine(CPU_p cpu, Register mem[],unsigned int immed_offset, RES_p res);
 int textgui(CPU_p cpu, Register mem[], RES_p res);
+void interface_setup(CPU_p cpu, Register mem[], RES_p res);
+
 
 
