@@ -6,14 +6,10 @@
 	Version: 1.0
 
 	Edited: Carter Odem, Mamadou Barry
-	Date: 4/20/2017
+	Date: 4/messageline/messageline17
 	
 	Simulates the simulation of the LC-3 computer in Patt & Patel
 */
-#include <stdio.h>
-#include <stdlib.h>
-#include <ncurses.h>
-#include <unistd.h>
 #include "lc3.h"
 
 Register sext(Register immed, int extend)
@@ -39,19 +35,6 @@ Register sext(Register immed, int extend)
     return immed;
 }
 
-int printStatus(CPU_p cpu, Register mem[])
-{
-    //printf("Contents of PC = %04X\n", cpu->pc);
-    //printf("Contents of MAR = %04X\n", cpu->mar);
-    //printf("Contents of MDR = %04X\n", cpu->mdr);
-    //printf("Contents of IR = %04X\n", cpu->ir);
-    //printf("Contents of PSR = %04X\n", cpu->psr);
-    //printf("Contents of Main Bus = %04X\n", cpu->main_bus);
-    int i;
-    // for (i=0; i<5; i++) //printf("Contents of register[%02X]: %04X\n", i, cpu->reg_file[i]);
-    // for (i=0; i<10; i++) //printf("Contents of memory[%04X]: %04X\n", i, mem[i]);
-}
-
 int setCC(CPU_p cpu)
 {
     int sign_bit;
@@ -65,7 +48,7 @@ int setCC(CPU_p cpu)
 	cpu->psr |= POS_FLAG_MASK;
 }
 
-int controller(CPU_p cpu, Register mem[])
+int controller(CPU_p cpu, Register mem[], RES_p res)
 {
     // check to make sure both pointers are not NULL
     // do any initializations here
@@ -84,19 +67,16 @@ int controller(CPU_p cpu, Register mem[])
 
     int state = FETCH;
 
-    while (flag != 1)
+    while (flag == 0)
     { // efficient endless loop
+
 	switch (state)
 	{
 
 	case FETCH: // microstates 18, 33, 35 in the book
 		    //printf("Here in FETCH\n");
 		    // microstates
-	    if (flag == 0)
-	    {
-		flag = textgui(cpu, mem);
-	    }
-
+	    flag = textgui(cpu, mem, res);
 	    cpu->mar = cpu->pc;
 	    cpu->pc++;
 	    cpu->mdr = mem[(cpu->mar - 0x3000) + 1]; // ignore time delays
@@ -125,8 +105,7 @@ int controller(CPU_p cpu, Register mem[])
 		  ((dr & POS_FLAG_MASK) & (cpu->psr & POS_FLAG_MASK));
 
 	    state = EVAL_ADDR;
-	    //printf("opcode = %02X, dr = %02X, sr1 = %02X, sr2 = %02X\n", opcode, dr, sr1, sr2);
-	    printStatus(cpu, mem);
+
 	    break;
 	case EVAL_ADDR: //
 			//printf("Here in EVAL_ADDR\n");
@@ -153,6 +132,10 @@ int controller(CPU_p cpu, Register mem[])
 		immed_offset = sext(cpu->ir & OFFSET6_MASK, EXT6);
 		break;
 	    case LD:
+		immed_offset = sext(cpu->ir & OFFSET9_MASK, EXT9);
+		effective_addr = immed_offset + cpu->pc + 1;
+		cpu->mar = effective_addr;
+		break;
 	    case ST:
 	    case BR:
 		immed_offset = sext(cpu->ir & OFFSET9_MASK, EXT9);
@@ -165,9 +148,11 @@ int controller(CPU_p cpu, Register mem[])
 	    case JMP: // nothing needed
 		break;
 	    case JSRR:
+		immed_offset = cpu->ir & OFFSET11_MASK;
+		effective_addr = immed_offset + cpu->pc;
 		break;
 	    }
-	    printStatus(cpu, mem);
+
 	    state = FETCH_OP;
 	    break;
 	case FETCH_OP: // Look at ST. Microstate 23 example of getting a value out of a register
@@ -213,7 +198,6 @@ int controller(CPU_p cpu, Register mem[])
 		// nothing
 		break;
 	    }
-	    printStatus(cpu, mem);
 	    state = EXECUTE;
 	    break;
 	case EXECUTE: // Note that ST does not have an execute microstate
@@ -232,10 +216,7 @@ int controller(CPU_p cpu, Register mem[])
 		cpu->alu->R = ~cpu->alu->A;
 		break;
 	    case TRAP:
-		if (traproutine(cpu, mem, immed_offset) == -1)
-		{
-		    flag = 0;
-		}
+		traproutine(cpu, mem, immed_offset, res);
 		break;
 	    case LD:
 		break;
@@ -246,7 +227,7 @@ int controller(CPU_p cpu, Register mem[])
 		break;
 	    case JSRR:
 		cpu->reg_file[7] = cpu->pc;
-		cpu->pc = cpu->reg_file[sr1];
+		cpu->pc = effective_addr;
 		break;
 	    case BR:
 		if (ben)
@@ -306,7 +287,7 @@ int controller(CPU_p cpu, Register mem[])
     }
 }
 
-int textgui(CPU_p cpu, Register mem[])
+int textgui(CPU_p cpu, Register mem[], RES_p res)
 {
     FILE *file;
     char mesg[] = ">";
@@ -319,18 +300,52 @@ int textgui(CPU_p cpu, Register mem[])
     unsigned short currentMemLocation = 0;
     unsigned short aMemLocation = 0;
 
+    if (res->runflag == 1)
+    {
+	if (res->bpoint[cpu->pc - mem[0]] == -1)
+	{
+	    mvwprintw(res->mes_win, 2 , 1, "Break Point Reached");
+	    res->runflag = 0;
+	}
+	else
+	{
+	    return 0;
+	}
+    }
+
     mvprintw(0, 10, "Welcome To the Lc3 Simulator^2");
-    mvprintw(1, 5, "Registers");
-    mvprintw(1, 30, "Memory");
-    //instructions
-    mvprintw(18, 3, "[1.Load][2.Run][3.Step][5.Display Memory][9.exit]");
+    mvprintw(21, 16, "Terminal");
+
+    refresh();
+   
+
+	box(res->mes_win, 0, 0);
+
+    //mvwprintw(res->mes_win, 2, 1, "Please Enter A Command");
+    wrefresh(res->mes_win);
+
     // loop the Text based gui
     while (flag == 0)
     {
-	aMemLocation = 0;
+
+	//terminal
+
+
+	box(res->ter_win, 0, 0);
+	wbkgd(res->ter_win, COLOR_PAIR(1));
+	wrefresh(res->ter_win);
+
 	//memory
+
+	box(res->mem_win, 0, 0);
+	//wbkgd(res->mem_win, COLOR_PAIR(1));
+
+	mvwprintw(res->mem_win, 1, 4, "Memory");
+
+	aMemLocation = 0;
 	count = 0;
 	i = aMemLocation;
+
 	if (cpu->pc - mem[0] > 15)
 	{
 	    i += 16;
@@ -338,52 +353,102 @@ int textgui(CPU_p cpu, Register mem[])
 	aMemLocation += i;
 	while (count < 16)
 	{
-	    move(2 + count, 27);
-	    clrtoeol();
-	    mvprintw(2 + count, 28, "x%04X:", (mem[0] + aMemLocation));
-	    mvprintw(2 + count, 35, "x%04X", mem[i + 1]);
+	    mvwprintw(res->mem_win, 2 + count, 2, "x%04X:", (mem[0] + aMemLocation));
+	    mvwprintw(res->mem_win, 2 + count, 8, "x%04X", mem[i + 1]);
+	    if (res->bpoint[i] == -1)
+	    {
+		wprintw(res->mem_win, "-Break");
+	    }
 	    aMemLocation++;
 	    count++;
 	    i++;
 	}
-	mvprintw(((cpu->pc - mem[0]) % 16) + 2, 27, ">");
+
+	    mvwprintw(res->mem_win, ((cpu->pc - mem[0]) % 16) + 2, 1, ">");
+	
+	wrefresh(res->mem_win);
+
 	//Registers
+
+
+	box(res->reg_win, 0, 0);
+	//wbkgd(res->reg_win, COLOR_PAIR(1));
+
+	mvwprintw(res->reg_win, 1, 2, "Registers");
 	i = 0;
 	while (i < 8)
 	{
-	    mvprintw(2 + i, 5, "R%d:", i);
-	    mvprintw(2 + i, 12, "x%04X", cpu->reg_file[i]);
+	    mvwprintw(res->reg_win, 2 + i, 2, "R%d:", i);
+	    mvwprintw(res->reg_win, 2 + i, 6, "x%04X", cpu->reg_file[i]);
 	    i++;
 	}
-	// specialty regesters
-	mvprintw(13, 3, "PC:x%04X", cpu->pc);
-	mvprintw(13, 15, "IR:x%04X", cpu->ir);
-	mvprintw(14, 3, "MDR:x%04X", cpu->mdr);
-	mvprintw(14, 15, "MAR:x%04X", cpu->mar);
-	mvprintw(15, 3, "A:x%04X", cpu->alu->A);
-	mvprintw(15, 15, "B:x%04X", cpu->alu->B);
-	mvprintw(16, 3, "CC:");
+
+	//specialty regesters
+
+	mvwprintw(res->reg_win, 3 + i, 2, "PC:x%04X", cpu->pc);
+	mvwprintw(res->reg_win, 4 + i, 2, "IR:x%04X", cpu->ir);
+	mvwprintw(res->reg_win, 5 + i, 2, "MDR:x%04X", cpu->mdr);
+	mvwprintw(res->reg_win, 6 + i, 2, "MAR:x%04X", cpu->mar);
+	mvwprintw(res->reg_win, 7 + i, 2, "A:x%04X", cpu->alu->A);
+	mvwprintw(res->reg_win, 8 + i, 2, "B:x%04X", cpu->alu->B);
 	int p = cpu->psr & POS_FLAG_MASK;
 	int z = (cpu->psr & ZERO_FLAG_MASK) >> 1;
 	int n = (cpu->psr & NEG_FLAG_MASK) >> 2;
-	mvprintw(16, 7, "N:%d", n);
-	mvprintw(16, 11, "P:%d", p);
-	mvprintw(16, 15, "Z:%d", z);
-	// get user input for instructions
-	move(19, 4);
-	clrtoeol();
-	mvprintw(19, 4, "%s", mesg);
-	getstr(str);
+	mvwprintw(res->reg_win, 9 + i, 1, "CC:N:%d P:%d", n, p);
+	mvwprintw(res->reg_win, 10 + i, 4, "Z:%d", z);
 
-	if (str[0] == '1')
+	wrefresh(res->reg_win);
+
+	// Command list
+
+
+	box(res->com_win, 0, 0);
+
+	mvwprintw(res->com_win, 1, 1, "Commands");
+	mvwprintw(res->com_win, 3, 1, "1.Load");
+	mvwprintw(res->com_win, 4, 1, "2.Run");
+	mvwprintw(res->com_win, 5, 1, "3.Step");
+	mvwprintw(res->com_win, 6, 1, "5.Memory");
+	mvwprintw(res->com_win, 7, 1, "7.Break");
+	mvwprintw(res->com_win, 8, 1, "8.Edit");
+	mvwprintw(res->com_win, 9, 1, "9.Exit");
+	mvwprintw(res->com_win, 10, 1, "0.Save");
+
+	wrefresh(res->com_win);
+
+	//Interface
+
+	//res->mes_win = newwin(5, 30, 1, 35);
+
+	box(res->mes_win, 0, 0);
+
+	mvwprintw(res->mes_win, 1, 8, "Simulator Message");
+
+	mvwprintw(res->mes_win, 3, 1, ">");
+
+	wrefresh(res->mes_win);
+
+	wgetstr(res->mes_win, str);
+	mvwprintw(res->mes_win, 3, 1, ">");
+
+	wclrtoeol(res->mes_win);
+	box(res->mes_win, 0, 0);
+	wrefresh(res->mes_win);
+
+	if (str[0] == '1') // Load .hex file
 	{
-	    move(20, 4);
-	    clrtoeol();
-	    mvprintw(20, 4, "Please enter a .hex file");
-	    move(19, 4);
-	    clrtoeol();
-	    mvprintw(19, 4, "%s", mesg);
-	    getstr(filename);
+
+	    mvwprintw(res->mes_win, 2, 1, "Please enter a .hex file");
+	    mvwprintw(res->mes_win, 3, 1, ">");
+
+	    wrefresh(res->mes_win);
+
+	    wgetstr(res->mes_win, filename);
+
+	    mvwprintw(res->mes_win, 3, 1, ">");
+	    wclrtoeol(res->mes_win);
+	    box(res->mes_win, 0, 0);
+	    wrefresh(res->mes_win);
 
 	    file = fopen(filename, "r");
 	    if (file)
@@ -394,65 +459,64 @@ int textgui(CPU_p cpu, Register mem[])
 		    mem[i] = strtol(str, &temp, 16);
 		    i++;
 		}
-		move(20, 4);
-		clrtoeol();
-		mvprintw(20, 4, "File %s loaded successful", filename);
+		mvwprintw(res->mes_win, 2, 1, "File %s loaded", filename);
+		 wclrtoeol(res->mes_win);
+	    box(res->mes_win, 0, 0);
+		wrefresh(res->mes_win);
 		cpu->pc = mem[0];
 	    }
 	    else
 	    {
-		move(20, 4);
-		clrtoeol();
-		mvprintw(20, 4, "##Error404: File Not Found");
+		mvwprintw(res->mes_win, 2, 1, "##Error404: File Not Found");
 	    }
 	}
-	else if (str[0] == '2')
-	{
-	    move(20, 4);
-	    clrtoeol();
-	    mvprintw(20, 4, "Running");
-	    move(21, 4);
-	    return 2;
-	}
-	else if (str[0] == '3')
+	else if (str[0] == '2') //Run
 	{
 
-	    move(20, 4);
-	    clrtoeol();
-	    mvprintw(20, 4, "Please enter a command just ran x%04X", mem[cpu->pc - mem[0] + 1]);
-	    move(21, 4);
+	    mvwprintw(res->mes_win, 2, 1, "Running");
+	    wclrtoeol(res->mes_win);
+	    box(res->mes_win, 0, 0);
+	    res->runflag = 1;
 	    return 0;
 	}
-	else if (str[0] == '5')
+	else if (str[0] == '3') // Step
+	{
+
+	    mvwprintw(res->mes_win, 2, 1, "Please enter a command, just ran x%04X", mem[cpu->pc - mem[0] + 1]);
+
+		wrefresh(res->mes_win);
+	
+	    return 0;
+	}
+	else if (str[0] == '5') // Go to memory
 	{
 	    int set = 0;
-	    char *temp;
-	    move(20, 4);
+	    move(messageline, 4);
 	    clrtoeol();
-	    mvprintw(20, 4, "Please enter a Memory address");
+	    mvwprintw(res->mes_win, 2, 1, "Please enter a Memory address");
 	    while (set == 0)
 	    {
 		set = 1;
 
 		move(19, 4);
 		clrtoeol();
-		mvprintw(19, 4, "%s", mesg);
+		mvprintw(19, 4, ">");
 		getstr(str);
 
 		currentMemLocation = strtol(str, &temp, 16) - mem[0];
 
 		if (currentMemLocation > 100)
 		{
-		    move(20, 4);
+		    move(messageline, 4);
 		    clrtoeol();
-		    mvprintw(20, 4, "Error pls enter valid address");
+		    mvwprintw(res->mes_win, 2, 1, "Error: Enter Valid Address");
 		    set = 0;
 		}
 		else
 		{
-		    move(20, 4);
+		    move(messageline, 4);
 		    clrtoeol();
-		    mvprintw(20, 4, "moving to location %X press return to continue", currentMemLocation + mem[0]);
+		    mvwprintw(res->mes_win, 2, 1, "moving to location %X press return to continue", currentMemLocation + mem[0]);
 		    i = currentMemLocation;
 		    count = 0;
 		    while (count < 16)
@@ -473,11 +537,118 @@ int textgui(CPU_p cpu, Register mem[])
 		}
 	    }
 	}
+	else if (str[0] == '7') //Toggle Break point
+	{
+	    int set = 0;
+	    move(messageline, 4);
+	    clrtoeol();
+	    mvwprintw(res->mes_win, 2, 1, "Please Enter A Memory address");
+	    while (set == 0)
+	    {
+		set = 1;
+
+		move(19, 4);
+		clrtoeol();
+		mvprintw(19, 4, ">");
+		getstr(str);
+
+		currentMemLocation = strtol(str, &temp, 16) - mem[0];
+
+		if (currentMemLocation > 99)
+		{
+		    move(messageline, 4);
+		    clrtoeol();
+		    mvwprintw(res->mes_win, 2, 1, "Error: Enter Valid Address");
+		    set = 0;
+		}
+		else
+		{
+		    if (res->bpoint[currentMemLocation] == -1)
+		    {
+			res->bpoint[currentMemLocation] = 0;
+		    }
+		    else if (res->bpoint[currentMemLocation] == 0)
+		    {
+			res->bpoint[currentMemLocation] = -1;
+		    }
+		    move(messageline, 4);
+		    clrtoeol();
+		    mvwprintw(res->mes_win, 2, 1, "Please enter a command");
+		}
+	    }
+	}
+	else if (str[0] == '8') //Edit memory
+	{
+	    int set = 0;
+
+	    move(messageline, 4);
+	    clrtoeol();
+	    mvwprintw(res->mes_win, 2, 1, "Please Enter A Memory Address To Edit");
+
+	    while (set == 0)
+	    {
+		set = 1;
+
+		move(19, 4);
+		clrtoeol();
+		mvprintw(19, 4, ">");
+		getstr(str);
+
+		currentMemLocation = strtol(str, &temp, 16) - mem[0];
+
+		if (currentMemLocation > 100)
+		{
+		    move(messageline, 4);
+		    clrtoeol();
+		    mvwprintw(res->mes_win, 2, 1, "Error: Enter Valid Address");
+		    set = 0;
+		}
+		else
+		{
+		    move(messageline, 4);
+		    clrtoeol();
+		    mvwprintw(res->mes_win, 2, 1, "Moving To Location %X Please Enter A New Instruction", currentMemLocation + mem[0]);
+		    i = currentMemLocation + 1;
+		    int save = currentMemLocation + 1;
+		    count = 0;
+		    while (count < 16)
+		    {
+			move(2 + count, 27);
+			clrtoeol();
+			mvprintw(2 + count, 28, "x%04X:", (mem[0] + currentMemLocation));
+			mvprintw(2 + count, 35, "x%04X", mem[i]);
+			currentMemLocation++;
+			count++;
+			i++;
+		    }
+
+		    move(19, 4);
+		    clrtoeol();
+		    move(messageline, 4);
+		    clrtoeol();
+		    mvwprintw(res->mes_win, 2, 1, "Please Enter A new Instruction In Hex");
+
+		    move(2, 35);
+		    clrtoeol();
+		    mvprintw(2, 34, ">x");
+
+		    getnstr(str, 4);
+
+		    mem[save] = strtol(str, &temp, 16);
+
+		    move(messageline, 4);
+		    clrtoeol();
+		    mvwprintw(res->mes_win, 2, 1, "Instruction Saved");
+		    refresh();
+		    sleep(2);
+		}
+	    }
+	}
 	else if (str[0] == '9')
 	{
-	    move(20, 4);
+	    move(messageline, 4);
 	    clrtoeol();
-	    mvprintw(20, 4, "Program exiting: press return to exit");
+	    mvwprintw(res->mes_win, 2, 1, "Program exiting: press return to exit");
 	    move(19, 4);
 	    clrtoeol();
 	    mvprintw(19, 4, "%s", mesg);
@@ -485,78 +656,190 @@ int textgui(CPU_p cpu, Register mem[])
 	    endwin();
 	    return 1;
 	}
+	else if (str[0] == '0')
+	{
+	    move(messageline, 4);
+	    clrtoeol();
+	    mvwprintw(res->mes_win, 2, 1, "Enter Name Of .hex File");
+	    move(19, 4);
+	    clrtoeol();
+	    mvprintw(19, 4, ">");
+	    getstr(filename);
+
+	    if (access(filename, F_OK) != -1)
+	    {
+		//file exists
+		move(messageline, 4);
+		clrtoeol();
+		mvwprintw(res->mes_win, 2, 1, "File Already Exist would you like to overwrite?(y,n)");
+		move(19, 4);
+		clrtoeol();
+		mvprintw(19, 4, ">");
+		getstr(str);
+		if (str[0] == 'y' || str[0] == 'Y')
+		{
+		    file = fopen(filename, "w");
+		    int i;
+		    for (i = 0; i < 100; i++)
+		    {
+			fprintf(file, "%04X\n", mem[i]);
+		    }
+
+		    fclose(file);
+
+		    move(messageline, 4);
+		    clrtoeol();
+		    mvwprintw(res->mes_win, 2, 1, "File Saved");
+		}
+		else
+		{
+		    move(messageline, 4);
+		    clrtoeol();
+		    mvwprintw(res->mes_win, 2, 1, "Please Enter A Command");
+		}
+	    }
+	    else
+	    {
+		// file doesn't exist
+		file = fopen(filename, "w");
+		int i;
+		for (i = 0; i < 100; i++)
+		{
+		    fprintf(file, "%04X\n", mem[i]);
+		}
+
+		fclose(file);
+
+		move(messageline, 4);
+		clrtoeol();
+		mvwprintw(res->mes_win, 2, 1, "File Saved");
+	    }
+	}
 	else
 	{
-	    move(20, 4);
+	    move(messageline, 4);
 	    clrtoeol();
-	    mvprintw(20, 4, "Input error try again");
+	    mvwprintw(res->mes_win, 2, 1, "Input error try again");
 	}
     }
 }
 
-int traproutine(CPU_p cpu, Register mem[], unsigned int immed_offset)
+int traproutine(CPU_p cpu, Register mem[], unsigned int immed_offset, RES_p res)
 {
     char str[50];
-    unsigned int ch;
+    int ch;
     int i = 0;
+    char c;
+    int k = 0;
+    int count = 0;
     if (immed_offset == 0x20) // getc
     {
-
-	mvprintw(23, 4, ">");
-	ch = getch();
+	mvwprintw(res->ter_win, 23, res->currentoutpos, ">");
+	wmove(res->ter_win,23, res->currentoutpos);
+	ch = wgetch(res->ter_win);
 	cpu->reg_file[0] = ch;
-	mvprintw(23, 4, ">");
-	clrtoeol();
     }
     else if (immed_offset == 0x21) //out
     {
-
-	str[0] = mem[cpu->reg_file[0] - mem[0]];
-	
-	printw("%c", str[0]);
+	count = 0;
+	k = 0;
+	if (cpu->reg_file[0] == 10) // if  new line
+	{
+	    move(21, 4);
+	    clrtoeol();
+	    move(22, 4);
+	    c = inch();
+	    while (count < 25)
+	    {
+		mvaddch(21, 4 + k, c);
+		k++;
+		move(22, 4 + k);
+		c = inch();
+		count++;
+	    }
+	    k = 0;
+	    count = 0;
+	    move(22, 4);
+	    clrtoeol();
+	    move(23, 4);
+	    c = inch();
+	    while (count < 25)
+	    {
+		mvaddch(22, 4 + k, c);
+		k++;
+		move(23, 4 + k);
+		c = inch();
+		count++;
+	    }
+	    res->currentoutpos = 4; //reset currser for new line
+	    move(23, res->currentoutpos);
+	    clrtoeol();
+	}
+	else
+	{
+	    move(23, res->currentoutpos);
+	    printw("%c", cpu->reg_file[0]);
+	    res->currentoutpos++;
+	}
     }
     else if (immed_offset == 0x22) //puts
     {
-		int k = 0;
-		int count = 0;
-	//addstr("output: ");
 
-
-	//mvinchstr(21, 4, chstr);
-
-//	mvaddchstr(22, 4, chstr);
-	move(21, 4);
-	char c = inch();
-	while (count < 25)
-	{
-	 mvaddch(22,4+k,c);
-	 k++;
-	 move(21, 4+k);
-	 c = inch();
-	 count++;
-	}
-
-	move(21, 4);
-
+	count = 0;
 	i = cpu->reg_file[0] - mem[0] + 1;
 	str[0] = mem[i];
+	k = 0;
 
-	addstr("output:");
-
-	while (str[0] != 0)
+	while (str[0] >= 10) // printing
 	{
-	    addch(str[0]);
+	    wmove(res->ter_win, 23, res->currentoutpos);
+	    if (str[0] == 10) // if  new line
+	    {
+		move(21, 4);
+		clrtoeol();
+		move(22, 4);
+		c = inch();
+		while (count < 25)
+		{
+		    mvaddch(21, 4 + k, c);
+		    k++;
+		    move(22, 4 + k);
+		    c = inch();
+		    count++;
+		}
+		k = 0;
+		move(22, 4);
+		clrtoeol();
+		move(23, 4);
+		c = inch();
+		while (count < 25)
+		{
+		    mvaddch(22, 4 + k, c);
+		    k++;
+		    move(23, 4 + k);
+		    c = inch();
+		    count++;
+		}
+		res->currentoutpos = 4; //reset currser for new line
 
-	    i++;
-	    str[0] = mem[i];
+		move(23, res->currentoutpos);
+		clrtoeol();
+	    }
+	    else // if not new lnine
+	    {
+		waddch(res->ter_win,str[0]);
+		i++;
+		str[0] = mem[i];
+		res->currentoutpos++;
+	    }
 	}
-	move(21, 4);
     }
     else if (immed_offset == 0x25) //HALT
     {
-	move(20, 4);
+	move(messageline, 4);
 	clrtoeol();
-	mvprintw(20, 4, "HALT HAS BEEN REACHED");
+	//mvwprintw(res->mes_win, 2 , 1, "HALT HAS BEEN REACHED");
+	res->runflag = 0;
 
 	return -1;
     }
@@ -565,15 +848,42 @@ int traproutine(CPU_p cpu, Register mem[], unsigned int immed_offset)
 
 int main(int argc, char *argv[])
 {
-
+    int i;
     Register memory[100];
+    for (i = 0; i < 100; i++)
+    {
+	memory[i] = 0;
+    }
+
+    RES_p res = (RES_p)malloc(sizeof(RES));
+
+    res->currentoutpos = 2;
+
+
+    for (i = 0; i < 100; i++)
+    {
+	res->bpoint[i] = 0;
+    }
 
     CPU_p cpu = (CPU_p)malloc(sizeof(CPU_s));
     cpu->alu = (ALU_p)malloc(sizeof(ALU_s));
     initscr(); /* start the curses mode */
-    mvprintw(20, 4, "Please enter a command");
-    refresh();
-    controller(cpu, memory);
 
+	res->com_win = newwin(12, 10, 6, 35);
+	res->reg_win = newwin(20, 15, 1, 1);
+	res->mem_win = newwin(20, 19, 1, 16);
+	res->mes_win = newwin(5, 30, 1, 35);
+	res->ter_win = newwin(5, 50, 22, 1);
+	wrefresh(res->ter_win);
+	sleep(5);
+
+    start_color();
+
+    init_pair(1, COLOR_BLACK, COLOR_BLUE);
+    init_pair(2, COLOR_BLACK, COLOR_WHITE);
+
+
+    controller(cpu, memory, res);
+   
     endwin();
 }

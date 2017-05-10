@@ -1,4 +1,9 @@
 // lc3.h
+#include <stdio.h>
+#include <stdlib.h>
+#include <ncurses.h>
+#include <unistd.h>
+
 
 // define states
 #define FETCH 0
@@ -57,12 +62,13 @@
 #define ZERO_BIT_MASK 0x0400
 #define POS_BIT_MASK 0x0200
 
+#define messageline 20
+
 typedef unsigned short Register;
 
 typedef struct alu_s {
 	Register A, B, R;	
 } ALU_s;
-
 typedef ALU_s * ALU_p;
 
 typedef struct cpu_s {
@@ -71,11 +77,24 @@ typedef struct cpu_s {
 	Register pc, ir, mar, mdr, psr;
 	Register main_bus;	// used to store data flows
 } CPU_s;
-
 typedef CPU_s * CPU_p;
 
-void guioutput(CPU_p cpu, Register mem[], char *str,int y,int x);
-int traproutine(CPU_p cpu, Register mem[],unsigned int immed_offset);
-int textgui(CPU_p cpu, Register mem[]);
+typedef struct debug_res {
+
+	int currentoutpos;
+	int bpoint[100];
+	int runflag;
+	WINDOW *com_win;
+	WINDOW *reg_win;
+	WINDOW *mem_win;
+	WINDOW *mes_win;
+	WINDOW *ter_win;
+
+} RES;
+typedef RES * RES_p;
+
+
+int traproutine(CPU_p cpu, Register mem[],unsigned int immed_offset, RES_p res);
+int textgui(CPU_p cpu, Register mem[], RES_p res);
 
 
