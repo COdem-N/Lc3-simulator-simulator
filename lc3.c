@@ -9,7 +9,7 @@
 #include "lc3.h"
 
 Register sext(Register immed, int extend)
-{
+ {
 	if (immed & extend)
 	{
 		switch (extend)
@@ -44,7 +44,7 @@ int setCC(CPU_p cpu)
 		cpu->psr |= POS_FLAG_MASK;
 }
 
-int controller(CPU_p cpu, Register mem[], RES_p res)
+ int controller(CPU_p cpu, Register mem[], RES_p res)
 {
 	// check to make sure both pointers are not NULL
 	// do any initializations here
@@ -72,6 +72,7 @@ int controller(CPU_p cpu, Register mem[], RES_p res)
 		case FETCH: // microstates 18, 33, 35 in the book
 					//printf("Here in FETCH\n");
 					// microstates
+
 			flag = textgui(cpu, mem, res);
 			cpu->mar = cpu->pc;
 			cpu->pc++;
@@ -79,12 +80,7 @@ int controller(CPU_p cpu, Register mem[], RES_p res)
 			cpu->main_bus = cpu->mdr;
 			cpu->ir = cpu->main_bus;
 
-			// get memory[PC] into IR - memory is a global array
-			// increment PC
-			//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-			// put //printf statements in each state and microstate to see that it is working
-			//++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-			//	printStatus(cpu, mem);
+			
 			state = DECODE;
 			break;
 		case DECODE: //
