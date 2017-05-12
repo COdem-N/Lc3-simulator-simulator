@@ -3,7 +3,8 @@
 *.ko
 *.obj
 *.elf
-
+*.stackdump
+*.exe.stackdump
 # Precompiled Headers
 *.gch
 *.pch
