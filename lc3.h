@@ -64,6 +64,7 @@
 
 #define messageline 2
 #define DEFAULT_X 2
+#define userinputline 3
 
 typedef unsigned short Register;
 
