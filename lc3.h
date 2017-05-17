@@ -62,11 +62,26 @@
 #define ZERO_BIT_MASK 0x0400
 #define POS_BIT_MASK 0x0200
 
+#define META_MASK 0XFFFF0000 // 1111 1111 1111 1111 0000 0000 0000 0000
+#define TAG_MASK 0xFF80		/// 1111 1111 1000 0000
+#define INDEX_MASK 	0x70 	// 0111 0000
+#define BLOCK_OFFSET 0xF	// 1111
+
+
+
+
+
 #define messageline 2
 #define DEFAULT_X 2
 #define userinputline 3
 
+#define CACHE_LINES 8
+#define MEMORY_SIZE 100
+
 typedef unsigned short Register;
+
+typedef unsigned long Cache;
+
 
 typedef struct alu_s {
 	Register A, B, R;	

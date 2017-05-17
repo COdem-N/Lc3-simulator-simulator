@@ -309,10 +309,10 @@ int textgui(CPU_p cpu, Register mem[], RES_p res)
     {
 	interface_setup(cpu, mem, res);
 
-	mvwprintw(res->mes_win, 3, 1, ">");
+	mvwprintw(res->mes_win, userinputline, 1, ">");
 	wgetstr(res->mes_win, str);
 	//clear their input
-	mvwprintw(res->mes_win, 3, 1, ">");
+	mvwprintw(res->mes_win, userinputline, 1, ">");
 	wclrtoeol(res->mes_win);
 	box(res->mes_win, 0, 0);
 	wrefresh(res->mes_win);
@@ -321,13 +321,13 @@ int textgui(CPU_p cpu, Register mem[], RES_p res)
 	{
 
 	    mvwprintw(res->mes_win, 2, 1, "Please enter a .hex file");
-	    mvwprintw(res->mes_win, 3, 1, ">");
+	    mvwprintw(res->mes_win, userinputline, 1, ">");
 
 	    wrefresh(res->mes_win);
 
 	    wgetstr(res->mes_win, filename);
 
-	    mvwprintw(res->mes_win, 3, 1, ">");
+	    mvwprintw(res->mes_win, userinputline, 1, ">");
 	    wclrtoeol(res->mes_win);
 	    box(res->mes_win, 0, 0);
 	    wrefresh(res->mes_win);
@@ -439,11 +439,11 @@ int textgui(CPU_p cpu, Register mem[], RES_p res)
 		    box(res->mem_win, 0, 0);
 		    wrefresh(res->mem_win);
 
-		    mvwprintw(res->mes_win, 3, 1, ">");
+		    mvwprintw(res->mes_win, userinputline, 1, ">");
 
 		    wrefresh(res->mes_win);
 		    wgetstr(res->mes_win, str);
-		    mvwprintw(res->mes_win, 3, 1, ">");
+		    mvwprintw(res->mes_win, userinputline, 1, ">");
 		    wclrtoeol(res->mes_win);
 		    box(res->mes_win, 0, 0);
 
@@ -467,10 +467,10 @@ int textgui(CPU_p cpu, Register mem[], RES_p res)
 	    {
 		set = 1;
 
-		mvwprintw(res->mes_win, 3, 1, ">");
+		mvwprintw(res->mes_win, userinputline, 1, ">");
 		wgetstr(res->mes_win, str);
 		//clear their input
-		mvwprintw(res->mes_win, 3, 1, ">");
+		mvwprintw(res->mes_win, userinputline, 1, ">");
 		wclrtoeol(res->mes_win);
 		box(res->mes_win, 0, 0);
 		wrefresh(res->mes_win);
@@ -515,10 +515,10 @@ int textgui(CPU_p cpu, Register mem[], RES_p res)
 	    {
 		set = 1;
 
-		mvwprintw(res->mes_win, 3, 1, ">");
+		mvwprintw(res->mes_win, userinputline, 1, ">");
 		wgetstr(res->mes_win, str);
 		//clear their input
-		mvwprintw(res->mes_win, 3, 1, ">");
+		mvwprintw(res->mes_win, userinputline, 1, ">");
 		wclrtoeol(res->mes_win);
 		box(res->mes_win, 0, 0);
 		wrefresh(res->mes_win);
@@ -570,7 +570,7 @@ int textgui(CPU_p cpu, Register mem[], RES_p res)
 		    wclrtoeol(res->mes_win);
 		    box(res->mes_win, 0, 0);
 		    mvwprintw(res->mes_win, messageline, 1, "Instruction Saved, Please enter a Command");
-		    mvwprintw(res->mes_win, 3, 1, ">");
+		    mvwprintw(res->mes_win, userinputline, 1, ">");
 		    wclrtoeol(res->mes_win);
 		    box(res->mes_win, 0, 0);
 		    wrefresh(res->mes_win);
@@ -583,13 +583,13 @@ int textgui(CPU_p cpu, Register mem[], RES_p res)
 	    wclrtoeol(res->mes_win);
 	    box(res->mes_win, 0, 0);
 	    mvwprintw(res->mes_win, messageline, 1, "Program exiting: press return to exit");
-		mvwprintw(res->mes_win, 3, 1, ">");
-		wgetstr(res->mes_win, str);
-		//clear their input
-		mvwprintw(res->mes_win, 3, 1, ">");
-		wclrtoeol(res->mes_win);
-		box(res->mes_win, 0, 0);
-		wrefresh(res->mes_win);
+	    mvwprintw(res->mes_win, userinputline, 1, ">");
+	    wgetstr(res->mes_win, str);
+	    //clear their input
+	    mvwprintw(res->mes_win, userinputline, 1, ">");
+	    wclrtoeol(res->mes_win);
+	    box(res->mes_win, 0, 0);
+	    wrefresh(res->mes_win);
 	    endwin();
 	    return 1;
 	}
@@ -599,7 +599,7 @@ int textgui(CPU_p cpu, Register mem[], RES_p res)
 	    wclrtoeol(res->mes_win);
 	    box(res->mes_win, 0, 0);
 	    mvwprintw(res->mes_win, messageline, 1, "Enter Name Of .hex File");
-	    mvwprintw(res->mes_win, 3, 1, ">");
+	    mvwprintw(res->mes_win, userinputline, 1, ">");
 	    wgetstr(res->mes_win, str);
 	    wclrtoeol(res->mes_win);
 	    box(res->mes_win, 0, 0);
@@ -612,10 +612,10 @@ int textgui(CPU_p cpu, Register mem[], RES_p res)
 		wclrtoeol(res->mes_win);
 		box(res->mes_win, 0, 0);
 		mvwprintw(res->mes_win, messageline, 1, "File Already Exist would you like to overwrite?(y,n)");
-		mvwprintw(res->mes_win, 3, 1, ">");
+		mvwprintw(res->mes_win, userinputline, 1, ">");
 		wgetstr(res->mes_win, str);
 		//clear their input
-		mvwprintw(res->mes_win, 3, 1, ">");
+		mvwprintw(res->mes_win, userinputline, 1, ">");
 		wclrtoeol(res->mes_win);
 		box(res->mes_win, 0, 0);
 		wrefresh(res->mes_win);
@@ -681,7 +681,7 @@ int traproutine(CPU_p cpu, Register mem[], unsigned int immed_offset, RES_p res)
     int count = 0;
     if (immed_offset == 0x20) // getc
     {
-	//mvwprintw(res->ter_win, 3, res->currentoutpos - 1, ">");
+	//mvwprintw(res->ter_win, userinputline, res->currentoutpos - 1, ">");
 	wmove(res->ter_win, 3, res->currentoutpos);
 	ch = wgetch(res->ter_win);
 	cpu->reg_file[0] = ch;
@@ -874,6 +874,9 @@ void interface_setup(CPU_p cpu, Register mem[], RES_p res)
     }
 
     //specialty regesters
+    int p = cpu->psr & POS_FLAG_MASK;
+    int z = (cpu->psr & ZERO_FLAG_MASK) >> 1;
+    int n = (cpu->psr & NEG_FLAG_MASK) >> 2;
 
     mvwprintw(res->reg_win, 3 + i, 2, "PC:x%04X", cpu->pc);
     mvwprintw(res->reg_win, 4 + i, 2, "IR:x%04X", cpu->ir);
@@ -881,9 +884,6 @@ void interface_setup(CPU_p cpu, Register mem[], RES_p res)
     mvwprintw(res->reg_win, 6 + i, 2, "MAR:x%04X", cpu->mar);
     mvwprintw(res->reg_win, 7 + i, 2, "A:x%04X", cpu->alu->A);
     mvwprintw(res->reg_win, 8 + i, 2, "B:x%04X", cpu->alu->B);
-    int p = cpu->psr & POS_FLAG_MASK;
-    int z = (cpu->psr & ZERO_FLAG_MASK) >> 1;
-    int n = (cpu->psr & NEG_FLAG_MASK) >> 2;
     mvwprintw(res->reg_win, 9 + i, 1, "CC:N:%d P:%d", n, p);
     mvwprintw(res->reg_win, 10 + i, 4, "Z:%d", z);
     box(res->reg_win, 0, 0);
@@ -913,19 +913,37 @@ void interface_setup(CPU_p cpu, Register mem[], RES_p res)
 
     mvwprintw(res->mes_win, 1, 8, "Simulator Message");
 
-    mvwprintw(res->mes_win, 3, 1, ">");
+    mvwprintw(res->mes_win, userinputline, 1, ">");
 
     wrefresh(res->mes_win);
+}
+
+void writeaccess(Cache cachemem[],CPU_p cpu, Register mem[], RES_p res, unsigned int offset, unsigned short data)
+{
+	//write to cache
+	unsigned int tag = offset / CACHE_LINES;
+	unsigned int index = offset % CACHE_LINES;
+	
+	//cachemem[index] =
+
+
+
 }
 
 int main(int argc, char *argv[])
 {
     int i;
-    Register memory[100];
-    for (i = 0; i < 100; i++)
+    Register memory[MEMORY_SIZE];
+
+    for (i = 0; i < MEMORY_SIZE; i++)
     {
 	memory[i] = 0;
     }
+
+	Cache cmemory[CACHE_LINES];
+
+
+
 
     RES_p res = (RES_p)malloc(sizeof(RES));
 
