@@ -1,7 +1,7 @@
 /*
 	lc3.c
 
-	Programmer: Carter Odem, =
+	Programmer: Carter Odem, Parker Olive, 
 	Date:5-20-2017
 	
 	Simulates the simulation of the LC-3 computer in Patt & Patel
@@ -923,10 +923,23 @@ void writeaccess(Cache cachemem[],CPU_p cpu, Register mem[], RES_p res, unsigned
 	//write to cache
 	unsigned int tag = offset / CACHE_LINES;
 	unsigned int index = offset % CACHE_LINES;
+	unsigned long buffer;
+  
+  // Write to Memory
+  mem[offset] = data;
+  
+  // Write to Cache
+  buffer = tag;
+  buffer << (TAG_SHIFT - INDEX_SHIFT)
+    
+  buffer | index
+  buffer << (MASK_SHIFT + INDEX_SHIFT)
+    
+  buffer | (unsigned long)data;
+  
+  cachemem[index] = buffer;
+
 	
-	//cachemem[index] =
-
-
 
 }
 

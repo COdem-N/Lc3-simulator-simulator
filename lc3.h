@@ -63,9 +63,14 @@
 #define POS_BIT_MASK 0x0200
 
 #define META_MASK 0XFFFF0000 // 1111 1111 1111 1111 0000 0000 0000 0000
-#define TAG_MASK 0xFF80		/// 1111 1111 1000 0000
-#define INDEX_MASK 	0x70 	// 0111 0000
-#define BLOCK_OFFSET 0xF	// 1111
+#define META_SHIFT 16
+#define TAG_MASK 0xC000		   // 1100 0000 0000 0000
+#define TAG_SHIFT 14
+
+
+#define INDEX_MASK 	0x3FC0   // 0011 1111 1100 0000
+#define INDEX_SHIFT 6
+#define BLOCK_OFFSET 0x003F	   // 0000 0000 0011 1111
 
 
 
@@ -75,8 +80,8 @@
 #define DEFAULT_X 2
 #define userinputline 3
 
-#define CACHE_LINES 8
-#define MEMORY_SIZE 100
+#define CACHE_LINES 250
+#define MEMORY_SIZE 1000
 
 typedef unsigned short Register;
 
