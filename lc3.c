@@ -59,7 +59,7 @@ int controller(CPU_p cpu, Register mem[], RES_p res)
     int sign_bit;
     int flag = 0;
 
-    // fill the registers with random numbers to start off in final simulation code.
+    // Fill the registers with random numbers to start off in final simulation code.
 
     int state = FETCH;
 
@@ -278,7 +278,7 @@ int controller(CPU_p cpu, Register mem[], RES_p res)
     }
 }
 
-int textgui(CPU_p cpu, Register mem[], RES_p res)
+int textgui(Cache cachemem[],CPU_p cpu, Register mem[], RES_p res)
 {
     FILE *file;
     char mesg[] = ">";
@@ -304,10 +304,10 @@ int textgui(CPU_p cpu, Register mem[], RES_p res)
 	}
     }
 
-    // loop the Text based gui
+    // loop for the interface
     while (flag == 0)
     {
-	interface_setup(cpu, mem, res);
+	interface_setup(cachemem, cpu, mem, res);
 
 	mvwprintw(res->mes_win, userinputline, 1, ">");
 	wgetstr(res->mes_win, str);
@@ -800,7 +800,7 @@ int traproutine(CPU_p cpu, Register mem[], unsigned int immed_offset, RES_p res)
     return 0;
 }
 
-void interface_setup(CPU_p cpu, Register mem[], RES_p res)
+void interface_setup(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res)
 {
     int i = 1;
     int count;
@@ -808,25 +808,16 @@ void interface_setup(CPU_p cpu, Register mem[], RES_p res)
 
     mvprintw(0, 20, "Welcome To the Lc3 Simulator^2");
     mvprintw(21, 16, "Terminal");
-
     refresh();
+    
 
-    box(res->mes_win, 0, 0);
-
-    wrefresh(res->mes_win);
     //terminal
-
     box(res->ter_win, 0, 0);
     wbkgd(res->ter_win, COLOR_PAIR(1));
     wrefresh(res->ter_win);
-
-    //memory
-
-    box(res->mem_win, 0, 0);
-    //wbkgd(res->mem_win, COLOR_PAIR(1));
-
-    mvwprintw(res->mem_win, 1, 4, "Memory");
-
+	//Cache L1
+	box(res->cache_win, 0, 0);
+    mvwprintw(res->cache_win, 1, 4, "L1 Cache");
     aMemLocation = 0;
     count = 0;
     i = aMemLocation;
@@ -836,34 +827,56 @@ void interface_setup(CPU_p cpu, Register mem[], RES_p res)
 	i += 16;
     }
     aMemLocation += i;
-    while (count < 16)
-    {
-	wmove(res->mem_win, 2 + count, 0);
-	wclrtoeol(res->mem_win);
-	mvwprintw(res->mem_win, 2 + count, 4, "x%04X:", (mem[0] + aMemLocation));
-	mvwprintw(res->mem_win, 2 + count, 11, "x%04X", mem[i + 1]);
-
-	if (res->bpoint[i] == -1)
+	
+    while (count < 16) 
 	{
-	    wprintw(res->mem_win, "-B");
-	}
-
+	wmove(res->cache_win, 2 + count, 0);
+	wclrtoeol(res->cache_win);
+	mvwprintw(res->cache_win, 2 + count, 4, "x%04X:", (mem[0] + aMemLocation));
+	mvwprintw(res->cache_win, 2 + count, 11, "x%04X", cachemem[i + 1]);
 	aMemLocation++;
 	count++;
 	i++;
     }
+    box(res->cache_win, 0, 0);
+    wrefresh(res->cache_win);
 
+    //memory
+    box(res->mem_win, 0, 0);
+    mvwprintw(res->mem_win, 1, 4, "Memory");
+    aMemLocation = 0;
+    count = 0;
+    i = aMemLocation;
+
+    if (cpu->pc - mem[0] > 15)
+    {
+	i += 16;
+    }
+    aMemLocation += i;
+	
+    while (count < 16) 
+	{
+	wmove(res->mem_win, 2 + count, 0);
+	wclrtoeol(res->mem_win);
+	mvwprintw(res->mem_win, 2 + count, 4, "x%04X:", (mem[0] + aMemLocation));
+	mvwprintw(res->mem_win, 2 + count, 11, "x%04X", mem[i + 1]);
+	if (res->bpoint[i] == -1)
+	{
+	    wprintw(res->mem_win, "-B");
+	}
+	aMemLocation++;
+	count++;
+	i++;
+    }
     box(res->mem_win, 0, 0);
     if (mem[0] != 0)
     {
 	mvwprintw(res->mem_win, ((cpu->pc - mem[0]) % 16) + 2, 1, "->");
     }
-
     wrefresh(res->mem_win);
 
     //Registers
     box(res->reg_win, 0, 0);
-
     mvwprintw(res->reg_win, 1, 2, "Registers");
     i = 0;
     while (i < 8)
@@ -877,7 +890,6 @@ void interface_setup(CPU_p cpu, Register mem[], RES_p res)
     int p = cpu->psr & POS_FLAG_MASK;
     int z = (cpu->psr & ZERO_FLAG_MASK) >> 1;
     int n = (cpu->psr & NEG_FLAG_MASK) >> 2;
-
     mvwprintw(res->reg_win, 3 + i, 2, "PC:x%04X", cpu->pc);
     mvwprintw(res->reg_win, 4 + i, 2, "IR:x%04X", cpu->ir);
     mvwprintw(res->reg_win, 5 + i, 2, "MDR:x%04X", cpu->mdr);
@@ -890,9 +902,6 @@ void interface_setup(CPU_p cpu, Register mem[], RES_p res)
     wrefresh(res->reg_win);
 
     // Command list
-
-    box(res->com_win, 0, 0);
-
     mvwprintw(res->com_win, 1, 1, "Commands");
     mvwprintw(res->com_win, 3, 1, "1.Load");
     mvwprintw(res->com_win, 4, 1, "2.Run");
@@ -902,45 +911,89 @@ void interface_setup(CPU_p cpu, Register mem[], RES_p res)
     mvwprintw(res->com_win, 8, 1, "8.Edit");
     mvwprintw(res->com_win, 9, 1, "9.Exit");
     mvwprintw(res->com_win, 10, 1, "0.Save");
-
+    box(res->com_win, 0, 0);
     wrefresh(res->com_win);
 
     //Interface
-
-    //res->mes_win = newwin(5, 30, 1, 35);
-
     box(res->mes_win, 0, 0);
-
     mvwprintw(res->mes_win, 1, 8, "Simulator Message");
-
     mvwprintw(res->mes_win, userinputline, 1, ">");
-
     wrefresh(res->mes_win);
 }
 
-void writeaccess(Cache cachemem[],CPU_p cpu, Register mem[], RES_p res, unsigned int offset, unsigned short data)
+void writeaccess(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res, unsigned int offset, unsigned short data)
 {
-	//write to cache
-	unsigned int tag = offset / CACHE_LINES;
-	unsigned int index = offset % CACHE_LINES;
-	unsigned long buffer;
-  
-  // Write to Memory
-  mem[offset] = data;
-  
-  // Write to Cache
-  buffer = tag;
-  buffer << (TAG_SHIFT - INDEX_SHIFT)
-    
-  buffer | index
-  buffer << (MASK_SHIFT + INDEX_SHIFT)
-    
-  buffer | (unsigned long)data;
-  
-  cachemem[index] = buffer;
+    //write to cache
+    unsigned int tag = offset / CACHE_LINES;
+    unsigned int index = offset % CACHE_LINES;
+    unsigned long buffer;
 
+    // Write to Memory
+    mem[offset] = data;
+
+    // Write to Cache
+    buffer = tag;
+    buffer = buffer << (TAG_SHIFT - INDEX_SHIFT);
+
+		 buffer = buffer | index;
+    buffer = buffer << (MASK_SHIFT + INDEX_SHIFT);
+
+		 buffer = buffer | (unsigned long)data;
+
+    cachemem[index] = buffer;
+}
+
+unsigned short readaccess(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res, unsigned int offset, unsigned short data)
+{
+    unsigned int tag = offset / CACHE_LINES;
+    unsigned int index = offset % CACHE_LINES;
+    unsigned long buffer;
+    int i = 0;
+    // see if its in cache
+
+    // go to where it should be
+    buffer = cachemem[index];
+    //check tag
+    buffer = buffer & META_MASK;
+    buffer = buffer >> META_SHIFT;
+    buffer = buffer & TAG_MASK;
+    buffer = buffer >> TAG_SHIFT;
+
+    if (buffer == tag) // memory is in cache
+    {
+	buffer = cachemem[index];
+
+	buffer = buffer & DATA_MASK;
+
+	return buffer;
+    }
+    else // needs to go to memory
+    {
+
+
+	offset = offset - (CACHE_LINES / 2);
+
+	//move memory to cache around location
+	for (i = 1; i <= CACHE_LINES; i++)
+	{
+	    tag = offset / CACHE_LINES; // get new meta data
+	    index = offset % CACHE_LINES;
+
+	    buffer = tag; // build buffer
+	    buffer = buffer << (TAG_SHIFT - INDEX_SHIFT);
+
+	    buffer = buffer | index;
+	    buffer = buffer << (MASK_SHIFT + INDEX_SHIFT);
+
+	    buffer = buffer | (unsigned long)mem[offset];
+
+	    offset += i;
+	}
+	mem[offset] = buffer;
+
+	return mem[offset];
 	
-
+    }
 }
 
 int main(int argc, char *argv[])
@@ -953,10 +1006,7 @@ int main(int argc, char *argv[])
 	memory[i] = 0;
     }
 
-	Cache cmemory[CACHE_LINES];
-
-
-
+    Cache cmemory[CACHE_LINES];
 
     RES_p res = (RES_p)malloc(sizeof(RES));
 
@@ -976,6 +1026,7 @@ int main(int argc, char *argv[])
     res->mem_win = newwin(20, 19, 1, 16);
     res->mes_win = newwin(5, 45, 1, 35);
     res->ter_win = newwin(5, 50, 22, 1);
+    res->cache_win = newwin(20, 19, 6, 42);
 
     start_color();
 

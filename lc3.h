@@ -62,19 +62,14 @@
 #define ZERO_BIT_MASK 0x0400
 #define POS_BIT_MASK 0x0200
 
-#define META_MASK 0XFFFF0000 // 1111 1111 1111 1111 0000 0000 0000 0000
+#define META_MASK 0XFFFF0000	 // 1111 1111 1111 1111 0000 0000 0000 0000
 #define META_SHIFT 16
-#define TAG_MASK 0xC000		   // 1100 0000 0000 0000
+#define TAG_MASK 0xC000		     // 1100 0000 0000 0000
 #define TAG_SHIFT 14
-
-
-#define INDEX_MASK 	0x3FC0   // 0011 1111 1100 0000
+#define INDEX_MASK 	0x3FC0      // 0011 1111 1100 0000
 #define INDEX_SHIFT 6
-#define BLOCK_OFFSET 0x003F	   // 0000 0000 0011 1111
-
-
-
-
+#define BLOCK_OFFSET 0x003F	    // 0000 0000 0011 1111
+#define DATA_MASK 0X0000FFFF	// 0000 0000 0000 0000 1111 1111 1111 1111
 
 #define messageline 2
 #define DEFAULT_X 2
@@ -84,7 +79,6 @@
 #define MEMORY_SIZE 1000
 
 typedef unsigned short Register;
-
 typedef unsigned long Cache;
 
 
@@ -102,7 +96,6 @@ typedef struct cpu_s {
 typedef CPU_s * CPU_p;
 
 typedef struct debug_res {
-
 	int currentoutpos;
 	int bpoint[100];
 	int runflag;
@@ -111,14 +104,19 @@ typedef struct debug_res {
 	WINDOW *mem_win;
 	WINDOW *mes_win;
 	WINDOW *ter_win;
+	WINDOW *cache_win;
 
 } RES;
 typedef RES * RES_p;
 
 
+// Functions
 int traproutine(CPU_p cpu, Register mem[],unsigned int immed_offset, RES_p res);
 int textgui(CPU_p cpu, Register mem[], RES_p res);
 void interface_setup(CPU_p cpu, Register mem[], RES_p res);
-
-
+int controller(CPU_p cpu, Register mem[], RES_p res);
+int setCC(CPU_p cpu);
+Register sext(Register immed, int extend);
+void writeaccess(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res, unsigned int offset, unsigned short data);
+unsigned short readaccess(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res, unsigned int offset, unsigned short data);
 
