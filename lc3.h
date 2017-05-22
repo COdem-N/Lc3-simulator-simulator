@@ -71,9 +71,12 @@
 #define BLOCK_OFFSET 0x003F	    // 0000 0000 0011 1111
 #define DATA_MASK 0X0000FFFF	// 0000 0000 0000 0000 1111 1111 1111 1111
 
-#define messageline 2
+#define MSGLINE_X 1
+#define MSGLINE_Y 2 
+#define USRINPUT 3
+
 #define DEFAULT_X 2
-#define userinputline 3
+
 
 #define CACHE_LINES 250
 #define MEMORY_SIZE 1000
@@ -112,11 +115,12 @@ typedef RES * RES_p;
 
 // Functions
 int traproutine(CPU_p cpu, Register mem[],unsigned int immed_offset, RES_p res);
-int textgui(CPU_p cpu, Register mem[], RES_p res);
-void interface_setup(CPU_p cpu, Register mem[], RES_p res);
-int controller(CPU_p cpu, Register mem[], RES_p res);
+int textgui(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res);
+void interface_setup(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res);
+int controller(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res);
 int setCC(CPU_p cpu);
 Register sext(Register immed, int extend);
 void writeaccess(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res, unsigned int offset, unsigned short data);
 unsigned short readaccess(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res, unsigned int offset, unsigned short data);
+long getaddress(RES_p res, Register mem[]);
 
