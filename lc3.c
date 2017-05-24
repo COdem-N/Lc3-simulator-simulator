@@ -44,7 +44,7 @@ int setCC(CPU_p cpu)
 		cpu->psr |= POS_FLAG_MASK;
 }
 
-int controller(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res)
+int controller(Cache instructL1[],Cache L1[], CPU_p cpu, Register mem[], RES_p res)
 {
 	// check to make sure both pointers are not NULL
 	// do any initializations here
@@ -77,7 +77,7 @@ int controller(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res)
 
 			cpu->mar = cpu->pc;
 			cpu->pc++;
-			cpu->mdr = mem[(cpu->mar - 0x3000) + 1]; // ignore time delays
+			cpu->mdr = readaccess(instructL1,cpu,mem, res,(cpu->mar - mem[0] + 1) ); 
 			cpu->main_bus = cpu->mdr;
 			cpu->ir = cpu->main_bus;
 
@@ -851,14 +851,16 @@ void writeaccess(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res, unsigne
 	cachemem[index] = buffer;
 }
 
-unsigned short readaccess(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res, unsigned int offset, unsigned short data)
+unsigned short readaccess(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res, unsigned int offset)
 {
 	unsigned int tag = offset / CACHE_LINES;
 	unsigned int index = offset % CACHE_LINES;
+	unsigned int soffset = offset % CACHE_BLOCK;
 	unsigned long buffer;
+	unsigned int realaddr = offset;
 	int i = 0;
 	// see if its in cache
-
+	
 	// go to where it should be
 	buffer = cachemem[index];
 	//check tag
@@ -878,10 +880,10 @@ unsigned short readaccess(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res
 	else // needs to go to memory
 	{
 
-		offset = offset - (CACHE_LINES / 2);
+		offset = offset - soffset;
 
 		//move memory to cache around location
-		for (i = 1; i <= CACHE_LINES; i++)
+		for (i = 0; i < CACHE_BLOCK; i++)
 		{
 			tag = offset / CACHE_LINES; // get new meta data
 			index = offset % CACHE_LINES;
@@ -894,9 +896,12 @@ unsigned short readaccess(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res
 
 			buffer = buffer | (unsigned long)mem[offset];
 
-			offset += i;
+			cachemem[index] = buffer;
+
+			offset += 1;
 		}
-		mem[offset] = buffer;
+
+		mem[realaddr] = buffer;
 
 		return mem[offset];
 	}
@@ -950,7 +955,9 @@ int main(int argc, char *argv[])
 		memory[i] = 0;
 	}
 
-	Cache cmemory[CACHE_LINES];
+	Cache L1[CACHE_LINES];
+
+	Cache instructL1[CACHE_LINES];
 
 	RES_p res = (RES_p)malloc(sizeof(RES));
 
@@ -979,7 +986,7 @@ int main(int argc, char *argv[])
 
 	mvwprintw(res->mes_win, 2, 1, "Please Enter A Command");
 
-	controller(cmemory, cpu, memory, res);
+	controller(instructL1, L1, cpu, memory, res);
 
 	endwin();
 }

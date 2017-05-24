@@ -77,9 +77,9 @@
 
 #define DEFAULT_X 2
 
-
-#define CACHE_LINES 250
-#define MEMORY_SIZE 1000
+#define CACHE_BLOCK 4
+#define CACHE_LINES 256
+#define MEMORY_SIZE 1024
 
 typedef unsigned short Register;
 typedef unsigned long Cache;
@@ -117,10 +117,10 @@ typedef RES * RES_p;
 int traproutine(CPU_p cpu, Register mem[],unsigned int immed_offset, RES_p res);
 int textgui(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res);
 void interface_setup(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res);
-int controller(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res);
+int controller(Cache instructL1[],Cache L1[], CPU_p cpu, Register mem[], RES_p res);
 int setCC(CPU_p cpu);
 Register sext(Register immed, int extend);
 void writeaccess(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res, unsigned int offset, unsigned short data);
-unsigned short readaccess(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res, unsigned int offset, unsigned short data);
+unsigned short readaccess(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res, unsigned int offset);
 long getaddress(RES_p res, Register mem[]);
 
