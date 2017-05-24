@@ -58,7 +58,6 @@ int controller(Cache instructL1[],Cache L1[], CPU_p cpu, Register mem[], RES_p r
 	int ben;
 	int sign_bit;
 	int flag = 0;
-
 	// Fill the registers with random numbers to start off in final simulation code.
 
 	int state = FETCH;
@@ -77,7 +76,7 @@ int controller(Cache instructL1[],Cache L1[], CPU_p cpu, Register mem[], RES_p r
 
 			cpu->mar = cpu->pc;
 			cpu->pc++;
-			cpu->mdr = readaccess(instructL1,cpu,mem, res,(cpu->mar - mem[0] + 1) ); 
+			cpu->mdr = readaccess(instructL1, cpu,mem, res, (cpu->mar - mem[0] + 1) ); 
 			cpu->main_bus = cpu->mdr;
 			cpu->ir = cpu->main_bus;
 
@@ -170,11 +169,11 @@ int controller(Cache instructL1[],Cache L1[], CPU_p cpu, Register mem[], RES_p r
 				cpu->reg_file[7] = cpu->pc;
 				break;
 			case LD:
-				cpu->mdr = mem[cpu->mar - 0x3000];
+				cpu->mdr = readaccess(L1, cpu, mem, res, (cpu->mar - 0x3000) ); // shouuld this be plus 1?
 				break;
 			case LDR:
 				cpu->mar = (immed_offset + cpu->reg_file[sr1]) - mem[0] + 1;
-				cpu->mdr = mem[cpu->mar];
+				cpu->mdr = readaccess(L1, cpu, mem, res, (cpu->mar) );  // should this be - 0x3000 i think its done above?
 				break;
 			case ST:
 				cpu->mdr = cpu->reg_file[dr]; // in this case dr is actually the source reg
@@ -257,11 +256,11 @@ int controller(Cache instructL1[],Cache L1[], CPU_p cpu, Register mem[], RES_p r
 				setCC(cpu);
 				break;
 			case ST:
-				mem[cpu->mar - 0x3000] = cpu->mdr;
+				writeaccess(L!, cpu, mem, res, cpu->mar- 0x3000, cpu->mdr);	//mem[cpu->mar - 0x3000] = cpu->mdr;
 				setCC(cpu);
 				break;
 			case STR:
-				mem[cpu->mar] = cpu->mdr;
+				writeaccess(L!, cpu, mem, res, cpu->mar, cpu->mdr);//mem[cpu->mar] = cpu->mdr;
 				setCC(cpu);
 				break;
 			case JMP:
