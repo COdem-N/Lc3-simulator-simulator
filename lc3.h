@@ -27,6 +27,8 @@
 #define LEA 0xE
 #define STR 0x7
 #define LDR 0x6
+#define LDI 0xA
+#define STI 0xB
 // others to follow
 
 #define OPCODE_MASK 0xF000
@@ -108,6 +110,8 @@ typedef struct debug_res {
 	WINDOW *mes_win;
 	WINDOW *ter_win;
 	WINDOW *cache_win;
+	WINDOW *instcache_win;
+	
 
 } RES;
 typedef RES * RES_p;
@@ -115,8 +119,8 @@ typedef RES * RES_p;
 
 // Functions
 int traproutine(CPU_p cpu, Register mem[],unsigned int immed_offset, RES_p res);
-int textgui(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res);
-void interface_setup(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res);
+int textgui(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p res);
+void interface_setup(Cache instructL1[], Cache cachemem[], CPU_p cpu, Register mem[], RES_p res);
 int controller(Cache instructL1[],Cache L1[], CPU_p cpu, Register mem[], RES_p res);
 int setCC(CPU_p cpu);
 Register sext(Register immed, int extend);
