@@ -76,7 +76,7 @@ int controller(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p 
 
 	    cpu->mar = cpu->pc;
 	    cpu->pc++;
-	    cpu->mdr = readaccess(instructL1, cpu, mem, res, (cpu->mar - mem[0] + 1));
+	    cpu->mdr = readaccess(instructL1, cpu, mem, res, (cpu->mar - mem[0] + 1 ));
 	    cpu->main_bus = cpu->mdr;
 	    cpu->ir = cpu->main_bus;
 
@@ -84,11 +84,7 @@ int controller(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p 
 	    break;
 	case DECODE: //
 	    
-		mvwprintw(res->mes_win, MSGLINE_Y, MSGLINE_X, "ir: x%04X ", cpu->ir);
-		wclrtoeol(res->mes_win);
-		box(res->mes_win, 0, 0);
-		wrefresh(res->mes_win);
-		sleep(3);
+	
 	    opcode = (cpu->ir & OPCODE_MASK) >> OPCODE_SHIFT;
 	    // OK to extract registers
 	    dr = (cpu->ir & DR_MASK) >> DR_SHIFT;
@@ -102,11 +98,6 @@ int controller(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p 
 
 	    state = EVAL_ADDR;
 
-		mvwprintw(res->mes_win, MSGLINE_Y, MSGLINE_X, "op: %d ", opcode);
-		wclrtoeol(res->mes_win);
-		box(res->mes_win, 0, 0);
-		wrefresh(res->mes_win);
-		sleep(3);
 
 	    break;
 	case EVAL_ADDR: //
@@ -271,11 +262,6 @@ int controller(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p 
 			break;
 	    case LEA:
 			cpu->reg_file[dr] = effective_addr;
-		mvwprintw(res->mes_win, MSGLINE_Y, MSGLINE_X, "dr: %d ", dr);
-		wclrtoeol(res->mes_win);
-		box(res->mes_win, 0, 0);
-		wrefresh(res->mes_win);
-		sleep(3);
 			setCC(cpu);
 			break;
 		case LDR:
@@ -1014,7 +1000,7 @@ unsigned short readaccess(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res
 	}
 
 
-	return mem[offset];
+	return mem[realaddr];
     }
 }
 
