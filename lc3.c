@@ -83,7 +83,12 @@ int controller(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p 
 	    state = DECODE;
 	    break;
 	case DECODE: //
-	    //printf("Here in DECODE\n");
+	    
+		mvwprintw(res->mes_win, MSGLINE_Y, MSGLINE_X, "ir: x%04X ", cpu->ir);
+		wclrtoeol(res->mes_win);
+		box(res->mes_win, 0, 0);
+		wrefresh(res->mes_win);
+		sleep(3);
 	    opcode = (cpu->ir & OPCODE_MASK) >> OPCODE_SHIFT;
 	    // OK to extract registers
 	    dr = (cpu->ir & DR_MASK) >> DR_SHIFT;
@@ -96,6 +101,12 @@ int controller(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p 
 		  ((dr & POS_FLAG_MASK) & (cpu->psr & POS_FLAG_MASK));
 
 	    state = EVAL_ADDR;
+
+		mvwprintw(res->mes_win, MSGLINE_Y, MSGLINE_X, "op: %d ", opcode);
+		wclrtoeol(res->mes_win);
+		box(res->mes_win, 0, 0);
+		wrefresh(res->mes_win);
+		sleep(3);
 
 	    break;
 	case EVAL_ADDR: //
@@ -260,6 +271,11 @@ int controller(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p 
 			break;
 	    case LEA:
 			cpu->reg_file[dr] = effective_addr;
+		mvwprintw(res->mes_win, MSGLINE_Y, MSGLINE_X, "dr: %d ", dr);
+		wclrtoeol(res->mes_win);
+		box(res->mes_win, 0, 0);
+		wrefresh(res->mes_win);
+		sleep(3);
 			setCC(cpu);
 			break;
 		case LDR:
@@ -363,21 +379,21 @@ int textgui(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p res
 		}
 		
 
-		for(i=1; i < CACHE_LINES; i++)
-		{
-			tag = i / CACHE_LINES;
-			index = i % CACHE_LINES;
-			buffer = tag;
-   			buffer = buffer << (TAG_SHIFT - INDEX_SHIFT);
+		// for(i=1; i < CACHE_LINES; i++)
+		// {
+		// 	tag = i / CACHE_LINES;
+		// 	index = i % CACHE_LINES;
+		// 	buffer = tag;
+   		// 	buffer = buffer << (TAG_SHIFT - INDEX_SHIFT);
 
-			buffer = buffer | index;
-			buffer = buffer << (META_SHIFT + INDEX_SHIFT);
+		// 	buffer = buffer | index;
+		// 	buffer = buffer << (META_SHIFT + INDEX_SHIFT);
 
-			buffer = buffer | (unsigned long)mem[i];
+		// 	buffer = buffer | (unsigned long)mem[i];
 
-			instructL1[i] = buffer;
+		// 	instructL1[i] = buffer;
 
-		}
+		// }
 			
 
 		mvwprintw(res->mes_win, MSGLINE_Y, MSGLINE_X, "File %s loaded", filename);
@@ -826,7 +842,7 @@ void interface_setup(Cache instructL1[], Cache cachemem[], CPU_p cpu, Register m
 		wmove(res->instcache_win, 2 + count, 0);
 		wclrtoeol(res->cache_win);
 		mvwprintw(res->instcache_win, 2 + count, 4, "x%04X:", (mem[0] + aMemLocation));
-		buffer = instructL1[i + 1] & DATA_MASK;
+		buffer = instructL1[i+1] & DATA_MASK;
 		mvwprintw(res->instcache_win, 2 + count, 10, "x%04X", buffer);
 		buffer = instructL1[i + 2] & DATA_MASK;
 		mvwprintw(res->instcache_win, 2 + count, 16, "x%04X", buffer);
@@ -926,6 +942,7 @@ void writeaccess(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res, unsigne
     unsigned int tag = offset / CACHE_LINES;
     unsigned int index = offset % CACHE_LINES;
     unsigned long buffer;
+	unsigned int valid_bit;
 
     // Write to Memory
     mem[offset] = data;
@@ -950,7 +967,9 @@ unsigned short readaccess(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res
     unsigned long buffer;
     unsigned int realaddr = offset;
     int i = 0;
+	int valid = cachemem[index] & VALID_MASK;
     // see if its in cache
+
 
     // go to where it should be
     buffer = cachemem[index];
@@ -960,7 +979,7 @@ unsigned short readaccess(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res
     buffer = buffer & TAG_MASK;
     buffer = buffer >> TAG_SHIFT;
 
-    if (buffer == tag) // memory is in cache
+    if (buffer == tag && valid ) // memory is in cache
     {
 	buffer = cachemem[index];
 
@@ -985,6 +1004,8 @@ unsigned short readaccess(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res
 	    buffer = buffer | index;
 	    buffer = buffer << (META_SHIFT + INDEX_SHIFT);
 
+		buffer = buffer | VALID_MASK;
+
 	    buffer = buffer | (unsigned long)mem[offset];
 
 	    cachemem[index] = buffer;
@@ -992,7 +1013,6 @@ unsigned short readaccess(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res
 	    offset += 1;
 	}
 
-	mem[realaddr] = buffer;
 
 	return mem[offset];
     }
