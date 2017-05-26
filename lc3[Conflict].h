@@ -111,6 +111,7 @@ typedef struct debug_res {
 	WINDOW *ter_win;
 	WINDOW *cache_win;
 	WINDOW *instcache_win;
+	
 
 } RES;
 typedef RES * RES_p;
