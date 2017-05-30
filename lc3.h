@@ -15,20 +15,22 @@
 
 #define REG_FILE_SIZE 8
 
-#define ADD 0x1
-#define AND 0x5
 #define BR 0
-#define NOT 0x9
-#define TRAP 0xF
+#define ADD 0x1
 #define LD 0x2
 #define ST 0x3
-#define JMP 0xC
 #define JSRR 0X4
-#define LEA 0xE
-#define STR 0x7
+#define AND 0x5
 #define LDR 0x6
+#define STR 0x7
+#define NOT 0x9
 #define LDI 0xA
 #define STI 0xB
+#define JMP 0xC
+
+#define LEA 0xE
+#define TRAP 0xF
+
 // others to follow
 
 #define OPCODE_MASK 0xF000
@@ -106,6 +108,7 @@ typedef struct debug_res {
 	int currentoutpos;
 	int bpoint[100];
 	int runflag;
+	int cachepos;
 	WINDOW *com_win;
 	WINDOW *reg_win;
 	WINDOW *mem_win;
@@ -119,7 +122,7 @@ typedef RES * RES_p;
 
 
 // Functions
-int traproutine(CPU_p cpu, Register mem[],unsigned int immed_offset, RES_p res);
+int traproutine( Cache L1[], CPU_p cpu, Register mem[], unsigned int immed_offset, RES_p res);
 int textgui(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p res);
 void interface_setup(Cache instructL1[], Cache cachemem[], CPU_p cpu, Register mem[], RES_p res);
 int controller(Cache instructL1[],Cache L1[], CPU_p cpu, Register mem[], RES_p res);

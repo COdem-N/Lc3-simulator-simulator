@@ -36,12 +36,17 @@ int setCC(CPU_p cpu)
     int sign_bit;
     cpu->psr &= CC_CLEAR_MASK; // clear CC flags in PSR
     if (cpu->main_bus == 0)
-	cpu->psr |= ZERO_FLAG_MASK;
-    sign_bit = (int)(cpu->main_bus & SIGN_BIT_MASK);
-    if (sign_bit)
-	cpu->psr |= NEG_FLAG_MASK;
-    else
-	cpu->psr |= POS_FLAG_MASK;
+	{
+		cpu->psr |= ZERO_FLAG_MASK;
+	}
+	else
+	{
+		sign_bit = (int)(cpu->main_bus & SIGN_BIT_MASK);
+		if (sign_bit)
+		cpu->psr |= NEG_FLAG_MASK;
+		else
+		cpu->psr |= POS_FLAG_MASK;
+	}
 }
 
 int controller(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p res)
@@ -107,49 +112,50 @@ int controller(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p 
 	      // compute effective address, e.g. add sext(immed7) to register
 	    case ADD:
 	    case AND:
-		if (bit5)
-		{
-		    immed_offset = sext(cpu->ir & IMM5_MASK, EXT5);
-		}
-		break;
+			if (bit5)
+			{
+				immed_offset = sext(cpu->ir & IMM5_MASK, EXT5);
+			}
+			break;
 	    case NOT: // nothing needed
-		break;
+			break;
 	    case TRAP:
-		immed_offset = cpu->ir & TRAP_VECT8_MASK; // same as ZEXT
-		break;
+			immed_offset = cpu->ir & TRAP_VECT8_MASK; // same as ZEXT
+			break;
 	    case LEA:
-		immed_offset = sext(cpu->ir & OFFSET9_MASK, EXT9);
-		effective_addr = immed_offset + cpu->pc;
-		break;
+			immed_offset = sext(cpu->ir & OFFSET9_MASK, EXT9);
+			effective_addr = immed_offset + cpu->pc;
+			break;
 	    case LDR:
-		immed_offset = sext(cpu->ir & OFFSET6_MASK, EXT6);
-		break;
+			immed_offset = sext(cpu->ir & OFFSET6_MASK, EXT6);
+			break;
 	    case LD:
-		immed_offset = sext(cpu->ir & OFFSET9_MASK, EXT9);
-		effective_addr = immed_offset + cpu->pc + 1;
-		cpu->mar = effective_addr;
-		break;
+			immed_offset = sext(cpu->ir & OFFSET9_MASK, EXT9);
+			effective_addr = immed_offset + cpu->pc + 1;
+			cpu->mar = effective_addr;
+			break;
 	    case ST:
 	    case BR:
-		immed_offset = sext(cpu->ir & OFFSET9_MASK, EXT9);
-		effective_addr = immed_offset + cpu->pc;
-		cpu->mar = effective_addr;
-		break;
+			immed_offset = sext(cpu->ir & OFFSET9_MASK, EXT9);
+			effective_addr = immed_offset + cpu->pc;
+			cpu->mar = effective_addr;
+			break;
 	    case STR:
-		immed_offset = cpu->ir & OFFSET6_MASK;
-		break;
+			immed_offset = cpu->ir & OFFSET6_MASK;
+			break;
 	    case JMP: // nothing needed
-		break;
+			break;
 	    case JSRR:
-		immed_offset = cpu->ir & OFFSET11_MASK;
-		effective_addr = immed_offset + cpu->pc;
-		break;
+			immed_offset = cpu->ir & OFFSET11_MASK;
+			effective_addr = immed_offset + cpu->pc;
+			break;
 	    case STI:
 	    case LDI:
-		immed_offset = sext(cpu->ir & OFFSET9_MASK, EXT9);
-		effective_addr = immed_offset + cpu->pc;
-		cpu->mar = effective_addr;
-		break;
+			immed_offset = sext(cpu->ir & OFFSET9_MASK, EXT9);
+			effective_addr = immed_offset + cpu->pc;
+			cpu->mar = effective_addr;
+			
+			break;
 	    }
 
 	    state = FETCH_OP;
@@ -162,46 +168,49 @@ int controller(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p 
 	    // or get memory for load instr.
 	    case ADD:
 	    case AND:
-		cpu->alu->A = cpu->reg_file[sr1];
-		if (!bit5)
-		{
-		    cpu->alu->B = cpu->reg_file[sr2];
-		}
-		else
-		    cpu->alu->B = immed_offset; // second operand
-		break;
+			cpu->alu->A = cpu->reg_file[sr1];
+			if (!bit5)
+			{
+				cpu->alu->B = cpu->reg_file[sr2];
+			}
+			else
+				cpu->alu->B = immed_offset; // second operand
+			break;
 	    case NOT:
-		cpu->alu->A = cpu->reg_file[sr1];
-		break;
+			cpu->alu->A = cpu->reg_file[sr1];
+			break;
 	    case TRAP:
-		cpu->reg_file[7] = cpu->pc;
-		break;
+			cpu->reg_file[7] = cpu->pc;
+			break;
 	    case LD:
-		cpu->mdr = readaccess(L1, cpu, mem, res, (cpu->mar - 0x3000)); // shouuld this be plus 1?
-		break;
+			cpu->mdr = readaccess(L1, cpu, mem, res, (cpu->mar - 0x3000)); // shouuld this be plus 1?
+			res->cachepos  = (cpu->mar - 0x3000 ) % CACHE_LINES;
+			break;
 	    case LDR:
-		cpu->mar = (immed_offset + cpu->reg_file[sr1]) - mem[0] + 1;
-		cpu->mdr = readaccess(L1, cpu, mem, res, (cpu->mar)); // should this be - 0x3000 i think its done above?
-		break;
+			cpu->mar = (immed_offset + cpu->reg_file[sr1]) - mem[0] + 1;
+			cpu->mdr = readaccess(L1, cpu, mem, res, (cpu->mar)); // should this be - 0x3000 i think its done above?
+			res->cachepos  = (cpu->mar) % CACHE_LINES;
+			break;
 	    case ST:
-		cpu->mdr = cpu->reg_file[dr]; // in this case dr is actually the source reg
-		break;
+			cpu->mdr = cpu->reg_file[dr]; // in this case dr is actually the source reg
+			break;
 	    case STR:
-		cpu->mar = immed_offset + cpu->reg_file[sr1] - mem[0] + 1;
-		cpu->mdr = cpu->reg_file[dr];
-		break;
+			cpu->mar = immed_offset + cpu->reg_file[sr1] - mem[0] + 1;
+			cpu->mdr = cpu->reg_file[dr];
+			break;
 	    case JMP:
-		// nothing
-		break;
+			// nothing
+			break;
 	    case BR:
-		// nothing
-		break;
+			// nothing
+			break;
 	    case STI:
 	    case LDI:
-		cpu->mdr = readaccess(L1, cpu, mem, res, (cpu->mar - 0x3000));
-		cpu->mar = cpu->mdr;
+			cpu->mdr = readaccess(L1, cpu, mem, res, (cpu->mar - 0x3000 + 1));
+			 res->cachepos  = (cpu->mar - 0x3000 + 1) % CACHE_LINES;
+			cpu->mar = cpu->mdr;
 
-		break;
+			break;
 	    }
 	    state = EXECUTE;
 	    break;
@@ -221,7 +230,7 @@ int controller(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p 
 			cpu->alu->R = ~cpu->alu->A;
 			break;
 	    case TRAP:
-			traproutine(cpu, mem, immed_offset, res);
+			traproutine(L1,cpu, mem, immed_offset, res);
 			break;
 	    case LD:
 			break;
@@ -270,7 +279,7 @@ int controller(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p 
 			setCC(cpu);
 			break;
 	    case ST:
-			writeaccess(L1, cpu, mem, res, cpu->mar - 0x3000, cpu->mdr); //mem[cpu->mar - 0x3000] = cpu->mdr;
+			writeaccess(L1, cpu, mem, res, cpu->mar - 0x3000 + 1, cpu->mdr); //mem[cpu->mar - 0x3000] = cpu->mdr;
 			setCC(cpu);
 			break;
 	    case STR:
@@ -285,10 +294,12 @@ int controller(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p 
 			break;
 	    case STI:
 			cpu->mdr = cpu->reg_file[dr];
-			writeaccess(L1, cpu, mem, res, (cpu->mar - 0x3000), cpu->mdr);
+			
+			writeaccess(L1, cpu, mem, res, (cpu->mar - 0x3000 + 1), cpu->mdr);
 			break;
 	    case LDI:
-			cpu->mdr = readaccess(L1, cpu, mem, res, (cpu->mar - 0x3000));
+			cpu->mdr = readaccess(L1, cpu, mem, res, (cpu->mar - 0x3000 + 1));
+			res->cachepos  = (cpu->mar - 0x3000 + 1) % CACHE_LINES;
 			cpu->reg_file[dr] = cpu->mdr;
 			break;
 	    }
@@ -358,28 +369,12 @@ int textgui(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p res
 	    if (file)
 	    {
 		i = 0;
-		while (fread(str, 1, 5, file) == 5)
+		while (fread(str, 1, 6, file) == 6)
 		{
 		    mem[i] = strtol(str, &temp, 16);
 		    i++;
-		}
 		
-
-		// for(i=1; i < CACHE_LINES; i++)
-		// {
-		// 	tag = i / CACHE_LINES;
-		// 	index = i % CACHE_LINES;
-		// 	buffer = tag;
-   		// 	buffer = buffer << (TAG_SHIFT - INDEX_SHIFT);
-
-		// 	buffer = buffer | index;
-		// 	buffer = buffer << (META_SHIFT + INDEX_SHIFT);
-
-		// 	buffer = buffer | (unsigned long)mem[i];
-
-		// 	instructL1[i] = buffer;
-
-		// }
+		}
 			
 
 		mvwprintw(res->mes_win, MSGLINE_Y, MSGLINE_X, "File %s loaded", filename);
@@ -542,12 +537,14 @@ int textgui(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p res
 	    endwin();
 	    return 1;
 	}
-	else if (str[0] == '0')
+	else if (str[0] == '0')// save file
 	{
 	    mvwprintw(res->mes_win, USRINPUT, MSGLINE_X, ">");
 	    wclrtoeol(res->mes_win);
 	    box(res->mes_win, 0, 0);
 	    mvwprintw(res->mes_win, MSGLINE_Y, MSGLINE_X, "Enter Name Of .hex File");
+		wclrtoeol(res->mes_win);
+	    box(res->mes_win, 0, 0);
 	    mvwprintw(res->mes_win, USRINPUT, MSGLINE_X, ">");
 	    wgetstr(res->mes_win, str);
 	    wclrtoeol(res->mes_win);
@@ -620,7 +617,7 @@ int textgui(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p res
     }
 }
 
-int traproutine(CPU_p cpu, Register mem[], unsigned int immed_offset, RES_p res)
+int traproutine( Cache L1[], CPU_p cpu, Register mem[], unsigned int immed_offset, RES_p res)
 {
     char str[50];
     int ch;
@@ -634,131 +631,146 @@ int traproutine(CPU_p cpu, Register mem[], unsigned int immed_offset, RES_p res)
 	wmove(res->ter_win, 3, res->currentoutpos);
 	ch = wgetch(res->ter_win);
 	cpu->reg_file[0] = ch;
-    }
+	wmove(res->ter_win, 3, res->currentoutpos);
+	wclrtoeol(res->ter_win);
+	box(res->ter_win, 0, 0);
+	wrefresh(res->ter_win);
+	
+    } else if (immed_offset == 0x19) //push
+    {	
+		writeaccess(L1, cpu, mem, res, cpu->reg_file[6] - mem[0],cpu->reg_file[0]);
+		cpu->reg_file[6]++;
+	}
+	else if (immed_offset == 0x18) //pop
+    {
+		cpu->reg_file[0] =  readaccess(L1, cpu, mem, res, cpu->reg_file[6] - mem[0]);
+		cpu->reg_file[6]--;
+	}
     else if (immed_offset == 0x21) //out
     {
-	count = 0;
-	k = 0;
-	if (cpu->reg_file[0] == 10) // if  new line
-	{
-	    wmove(res->ter_win, 1, DEFAULT_X);
-	    wclrtoeol(res->ter_win);
-	    box(res->ter_win, 0, 0);
-	    wmove(res->ter_win, 2, DEFAULT_X);
-	    c = inch();
-	    while (count < 25)
-	    {
-		mvwaddch(res->ter_win, 1, DEFAULT_X + k, c);
-		k++;
-		wmove(res->ter_win, 2, DEFAULT_X + k);
-		c = inch();
-		count++;
-	    }
-	    k = 0;
-	    count = 0;
-	    wmove(res->ter_win, 2, DEFAULT_X);
-	    wclrtoeol(res->ter_win);
-	    box(res->ter_win, 0, 0);
-	    wmove(res->ter_win, 3, DEFAULT_X);
-	    c = inch();
-	    while (count < 25)
-	    {
-		mvwaddch(res->ter_win, 2, DEFAULT_X + k, c);
-		k++;
-		wmove(res->ter_win, 3, DEFAULT_X + k);
-		c = inch();
-		count++;
-	    }
-	    res->currentoutpos = DEFAULT_X; //reset currser for new line
-	    wmove(res->ter_win, 23, res->currentoutpos);
-	    wclrtoeol(res->ter_win);
-	    box(res->ter_win, 0, 0);
-	}
-	else
-	{
-	    wmove(res->ter_win, 3, res->currentoutpos);
-	    wprintw(res->ter_win, "%c", cpu->reg_file[0]);
-	    res->currentoutpos++;
-	}
+		count = 0;
+		k = 0;
+		if (cpu->reg_file[0] == 10) // if  new line
+		{
+			wmove(res->ter_win, 1, DEFAULT_X);
+			wclrtoeol(res->ter_win);
+			box(res->ter_win, 0, 0);
+			wmove(res->ter_win, 2, DEFAULT_X);
+			c = winch(res->ter_win);
+			while (count < 25)
+			{
+			mvwaddch(res->ter_win, 1, DEFAULT_X + k, c);
+			k++;
+			wmove(res->ter_win, 2, DEFAULT_X + k);
+			c = winch(res->ter_win);
+			count++;
+			}
+			k = 0;
+			count = 0;
+			wmove(res->ter_win, 2, DEFAULT_X);
+			wclrtoeol(res->ter_win);
+			box(res->ter_win, 0, 0);
+			wmove(res->ter_win, 3, DEFAULT_X);
+			c = winch(res->ter_win);
+			while (count < 25)
+			{
+			mvwaddch(res->ter_win, 2, DEFAULT_X + k, c);
+			k++;
+			wmove(res->ter_win, 3, DEFAULT_X + k);
+			c = winch(res->ter_win);
+			count++;
+			}
+			res->currentoutpos = DEFAULT_X; //reset currser for new line
+			wmove(res->ter_win, 23, res->currentoutpos);
+			wclrtoeol(res->ter_win);
+			box(res->ter_win, 0, 0);
+		}
+		else
+		{
+			wmove(res->ter_win, USRINPUT, res->currentoutpos);
+			wprintw(res->ter_win, "%c", cpu->reg_file[0]);
+			res->currentoutpos++;
+		}
     }
     else if (immed_offset == 0x22) //puts
     {
 
-	count = 0;
-	i = cpu->reg_file[0] - mem[0] + 1;
-	str[0] = mem[i];
-	k = 0;
+		count = 0;
+		i = cpu->reg_file[0] - mem[0] + 1;
+		str[0] = mem[i];
+		k = 0;
 
-	while (str[0] >= 10) // printing
-	{
-	    wmove(res->ter_win, 3, res->currentoutpos);
+		while (str[0] >= 10) // printing
+		{
+			wmove(res->ter_win, 3, res->currentoutpos);
 
-	    if (str[0] == 10) // if  new line
-	    {
-			wmove(res->ter_win, 1, DEFAULT_X);
-			wclrtoeol(res->ter_win);
-			box(res->ter_win, 0, 0);
-
-			wmove(res->ter_win, 2, DEFAULT_X);
-			c = inch();
-			count = 0;
-				k = 0;
-			while (count < 25)
+			if (str[0] == 10) // if  new line
 			{
-				mvwaddch(res->ter_win, 1, DEFAULT_X + k, c);
-				k++;
-				wmove(res->ter_win, 2, DEFAULT_X + k);
-				c = winch(res->ter_win);
-				count++;
-			}
-		
-			wmove(res->ter_win, 2, 4);
-			wclrtoeol(res->ter_win);
-			box(res->ter_win, 0, 0);
+				wmove(res->ter_win, 1, DEFAULT_X);
+				wclrtoeol(res->ter_win);
+				box(res->ter_win, 0, 0);
 
-			wmove(res->ter_win, 3, 1);
-			c = inch();
-			count = 0;
-			k = 0;
-			while (count < 25)
-			{
-				mvwaddch(res->ter_win, 2,  k, c);
-				k++;
-				wmove(res->ter_win, 3, k);
-				c = winch(res->ter_win);
-				count++;
-			}
+				wmove(res->ter_win, 2, DEFAULT_X);
+				c = inch();
+				count = 0;
+					k = 0;
+				while (count < 25)
+				{
+					mvwaddch(res->ter_win, 1, DEFAULT_X + k, c);
+					k++;
+					wmove(res->ter_win, 2, DEFAULT_X + k);
+					c = winch(res->ter_win);
+					count++;
+				}
 			
-			res->currentoutpos = DEFAULT_X; //reset currser for new line
+				wmove(res->ter_win, 2, 4);
+				wclrtoeol(res->ter_win);
+				box(res->ter_win, 0, 0);
 
-			wmove(res->ter_win, 3, DEFAULT_X);
-			wclrtoeol(res->ter_win);
-			box(res->ter_win, 0, 0);
-			 wrefresh(res->ter_win);
-			i++;
-			str[0] = mem[i];
+				wmove(res->ter_win, 3, 1);
+				c = inch();
+				count = 0;
+				k = 0;
+				while (count < 25)
+				{
+					mvwaddch(res->ter_win, 2,  k, c);
+					k++;
+					wmove(res->ter_win, 3, k);
+					c = winch(res->ter_win);
+					count++;
+				}
+				
+				res->currentoutpos = DEFAULT_X; //reset currser for new line
+
+				wmove(res->ter_win, 3, DEFAULT_X);
+				wclrtoeol(res->ter_win);
+				box(res->ter_win, 0, 0);
+				wrefresh(res->ter_win);
+				i++;
+				str[0] = mem[i];
 
 
-	    }
-	    else // if not new lnine
-	    {
-			waddch(res->ter_win, str[0]);
-			i++;
-			str[0] = mem[i];
-			res->currentoutpos++;
-			 wrefresh(res->ter_win);
-	    }
-	}
+			}
+			else // if not new lnine
+			{
+				waddch(res->ter_win, str[0]);
+				i++;
+				str[0] = mem[i];
+				res->currentoutpos++;
+				wrefresh(res->ter_win);
+			}
+		}
     }
     else if (immed_offset == 0x25) //HALT
     {
-	mvwprintw(res->mes_win, USRINPUT, MSGLINE_X, ">");
-	wclrtoeol(res->mes_win);
-	box(res->mes_win, 0, 0);
-	mvwprintw(res->mes_win, MSGLINE_Y, 1, "HALT HAS BEEN REACHED");
-	res->runflag = 0;
+		mvwprintw(res->mes_win, USRINPUT, MSGLINE_X, ">");
+		wclrtoeol(res->mes_win);
+		box(res->mes_win, 0, 0);
+		mvwprintw(res->mes_win, MSGLINE_Y, 1, "HALT HAS BEEN REACHED");
+		res->runflag = 0;
+		cpu->pc--;
 
-	return -1;
+		return -1;
     }
     return 0;
 }
@@ -774,53 +786,50 @@ void interface_setup(Cache instructL1[], Cache cachemem[], CPU_p cpu, Register m
 
 
     mvprintw(0, 20, "Welcome To the Lc3 Simulator^2");
-    mvprintw(21, 30, "Terminal");
+    mvprintw(26, 30, "Terminal");
     refresh();
 
     //terminal
     box(res->ter_win, 0, 0);
     wbkgd(res->ter_win, COLOR_PAIR(1));
     wrefresh(res->ter_win);
+
     //Cache L1
     box(res->cache_win, 0, 0);
-    mvwprintw(res->cache_win, 1, 15, "L1 Cache");
-    aMemLocation = 0;
- 
-    i = aMemLocation;
-
-    if (cpu->pc - mem[0] > 15)
-    {
-		i += 16;
-    }
-    aMemLocation += i;
-
+    mvwprintw(res->cache_win, 1, 15, "L1 Cache ");
+    aMemLocation = res->cachepos - ((res->cachepos - 1) % 16);
+	aMemLocation --;
+	 i = aMemLocation;
+	 
+	 
 	count = 0;
     while (count < 10)
     {
 		wmove(res->cache_win, 2 + count, 0);
 		wclrtoeol(res->cache_win);
 		mvwprintw(res->cache_win, 2 + count, 4, "x%04X:", (mem[0] + aMemLocation));
-		mvwprintw(res->cache_win, 2 + count, 10, "x%04X", cachemem[i + 0]);
-		mvwprintw(res->cache_win, 2 + count, 16, "x%04X", cachemem[i + 1]);
-		mvwprintw(res->cache_win, 2 + count, 22, "x%04X", cachemem[i + 2]);
-		mvwprintw(res->cache_win, 2 + count, 28, "x%04X", cachemem[i + 3]);
+		buffer = cachemem[i + 1] & DATA_MASK;
+		mvwprintw(res->cache_win, 2 + count, 10, "x%04X", buffer);
+		buffer = cachemem[i+2] & DATA_MASK;
+		mvwprintw(res->cache_win, 2 + count, 16, "x%04X", buffer);
+		buffer = cachemem[i+3] & DATA_MASK;
+		mvwprintw(res->cache_win, 2 + count, 22, "x%04X", buffer);
+		buffer = cachemem[i+4] & DATA_MASK;
+		mvwprintw(res->cache_win, 2 + count, 28, "x%04X", buffer);
 		aMemLocation+=4;
 		count++;
-		i++;
+		i+=4;
     }
     box(res->cache_win, 0, 0);
     wrefresh(res->cache_win);
+
 	//Instruction cache
 	box(res->instcache_win, 0, 0);
     mvwprintw(res->instcache_win, 1, 10, "Instruction Cache");
-    aMemLocation = 0;
-
+    aMemLocation = cpu->pc - mem[0];
+	aMemLocation = aMemLocation - (aMemLocation % 16);
     i = aMemLocation;
-    if (cpu->pc - mem[0] > 15)
-    {
-		i += 16;
-    }
-    aMemLocation += i;
+
 
     count = 0;
     while (count < 4)
@@ -846,15 +855,10 @@ void interface_setup(Cache instructL1[], Cache cachemem[], CPU_p cpu, Register m
 	//memory
 	box(res->mem_win, 0, 0);
 	mvwprintw(res->mem_win, 1, 4, "Memory");
-	aMemLocation = 0;
 	count = 0;
-	i = aMemLocation;
-
-    if (cpu->pc - mem[0] > 15)
-    {
-		i += 16;
-    }
-    aMemLocation += i;
+    aMemLocation = cpu->pc - mem[0];
+	aMemLocation = aMemLocation - (aMemLocation % 16);
+    i = aMemLocation;
     while (count < 16)
     {
 		wmove(res->mem_win, 2 + count, 0);
@@ -863,7 +867,10 @@ void interface_setup(Cache instructL1[], Cache cachemem[], CPU_p cpu, Register m
 		mvwprintw(res->mem_win, 2 + count, 11, "x%04X", mem[i + 1]);
 		if (res->bpoint[i] == -1)
 		{
-			wprintw(res->mem_win, "-B");
+			wattron(res->mem_win,COLOR_PAIR(3));
+			wprintw(res->mem_win, "  ");
+			wattroff(res->mem_win,COLOR_PAIR(3));
+			
 		}
 		aMemLocation++;
 		count++;
@@ -903,15 +910,15 @@ void interface_setup(Cache instructL1[], Cache cachemem[], CPU_p cpu, Register m
     wrefresh(res->reg_win);
 
     // Command list
-    mvwprintw(res->com_win, 1, 1, "Commands");
-    mvwprintw(res->com_win, 3, 1, "1.Load");
-    mvwprintw(res->com_win, 4, 1, "2.Run");
-    mvwprintw(res->com_win, 5, 1, "3.Step");
-    mvwprintw(res->com_win, 6, 1, "5.Memory");
-    mvwprintw(res->com_win, 7, 1, "7.Break");
-    mvwprintw(res->com_win, 8, 1, "8.Edit");
-    mvwprintw(res->com_win, 9, 1, "9.Exit");
-    mvwprintw(res->com_win, 10, 1, "0.Save");
+    mvwprintw(res->com_win, 1, 9, "Commands");
+    mvwprintw(res->com_win, 2, 1, "1.Load");
+    mvwprintw(res->com_win, 2, 10, "2.Run");
+    mvwprintw(res->com_win, 2, 18, "3.Step");
+    mvwprintw(res->com_win, 3, 1, "5.Memory");
+    mvwprintw(res->com_win, 3, 10, "7.Break");
+    mvwprintw(res->com_win, 3, 18, "8.Edit");
+    mvwprintw(res->com_win, 4, 1, "9.Exit");
+    mvwprintw(res->com_win, 4, 10, "0.Save");
     box(res->com_win, 0, 0);
     wrefresh(res->com_win);
 
@@ -936,20 +943,20 @@ void writeaccess(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res, unsigne
     // Write to Cache
     buffer = tag;
     buffer = buffer << (TAG_SHIFT - INDEX_SHIFT);
-
     buffer = buffer | index;
     buffer = buffer << (META_SHIFT + INDEX_SHIFT);
-
-    buffer = buffer | (unsigned long)data;
+    buffer 	= buffer | (unsigned long)data;
 
     cachemem[index] = buffer;
+	res->cachepos = index;
+	
 }
 
 unsigned short readaccess(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res, unsigned int offset)
 {
     unsigned int tag = offset / CACHE_LINES;
     unsigned int index = offset % CACHE_LINES;
-    unsigned int soffset = offset % CACHE_BLOCK;
+    unsigned int soffset = (offset - 1) % CACHE_BLOCK;
     unsigned long buffer;
     unsigned int realaddr = offset;
     int i = 0;
@@ -981,7 +988,7 @@ unsigned short readaccess(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res
 	//move memory to cache around location
 	for (i = 0; i < CACHE_BLOCK; i++)
 	{
-	    tag = offset / CACHE_LINES; // get new meta data
+	    tag = offset / CACHE_LINES; // get new meta data	
 	    index = offset % CACHE_LINES;
 
 	    buffer = tag; // build buffer
@@ -996,7 +1003,7 @@ unsigned short readaccess(Cache cachemem[], CPU_p cpu, Register mem[], RES_p res
 
 	    cachemem[index] = buffer;
 
-	    offset += 1;
+	    offset ++;
 	}
 
 
@@ -1030,7 +1037,7 @@ long getaddress(RES_p res, Register mem[])
 
 	result = strtol(str, &temp, 16) - mem[0];
 
-	if (result > 1000) //is the address out of range throw error message and get input again
+	if (result - mem[0] > 1000) //is the address out of range throw error message and get input again
 	{
 	    mvwprintw(res->mes_win, USRINPUT, MSGLINE_X, ">");
 	    wclrtoeol(res->mes_win);
@@ -1046,6 +1053,7 @@ long getaddress(RES_p res, Register mem[])
 int main(int argc, char *argv[])
 {
     int i;
+
     Register memory[MEMORY_SIZE];
 
     Cache L1[CACHE_LINES];
@@ -1059,10 +1067,8 @@ int main(int argc, char *argv[])
 		L1[i] = 0;
     }
 
-
     RES_p res = (RES_p)malloc(sizeof(RES));
-
-    res->currentoutpos = 2;
+    res->currentoutpos = 1;
 
     for (i = 0; i < 100; i++)
     {
@@ -1073,18 +1079,20 @@ int main(int argc, char *argv[])
     cpu->alu = (ALU_p)malloc(sizeof(ALU_s));
     initscr(); /* start the curses mode */
 
-    res->com_win = newwin(12, 10, 6, 75);
+    res->com_win = newwin(6, 29, 21, 46);
     res->reg_win = newwin(20, 15, 1, 1);
     res->mem_win = newwin(20, 19, 1, 16);
-    res->mes_win = newwin(5, 45, 1, 75);
-    res->ter_win = newwin(7, 74, 22, 1);
+    res->mes_win = newwin(5, 45, 21, 1);
+    res->ter_win = newwin(5, 74, 27, 1);
     res->cache_win = newwin(13, 40, 1, 35);
 	res->instcache_win = newwin(7, 40, 14, 35);
+	res->cachepos = 1;
 
     start_color();
 
     init_pair(1, COLOR_BLACK, COLOR_BLUE);
     init_pair(2, COLOR_BLACK, COLOR_WHITE);
+	init_pair(3, COLOR_RED, COLOR_RED);
 
     mvwprintw(res->mes_win, 2, 1, "Please Enter A Command");
 
