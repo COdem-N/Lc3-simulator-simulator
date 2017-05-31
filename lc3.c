@@ -643,8 +643,9 @@ int traproutine( Cache L1[], CPU_p cpu, Register mem[], unsigned int immed_offse
 	}
 	else if (immed_offset == 0x18) //pop
     {
+			cpu->reg_file[6]--;
 		cpu->reg_file[0] =  readaccess(L1, cpu, mem, res, cpu->reg_file[6] - mem[0]);
-		cpu->reg_file[6]--;
+	
 	}
     else if (immed_offset == 0x21) //out
     {
