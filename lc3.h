@@ -1,4 +1,14 @@
-// lc3.h
+/*
+	lc3.h
+
+	Programmer: 
+	Carter Odem 
+	Dmitriy Bliznyuk
+	Parker Hayden Olive
+	Mamadou S Barry
+
+	Date:5-20-2017
+*/
 #include <stdio.h>
 #include <stdlib.h>
 #include <ncurses.h>

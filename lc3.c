@@ -1,7 +1,12 @@
 /*
 	lc3.c
 
-	Programmer: Carter Odem, Parker Olive, 
+	Programmer: 
+	Carter Odem 
+	Dmitriy Bliznyuk
+	Parker Hayden Olive
+	Mamadou S Barry
+
 	Date:5-20-2017
 	
 	Simulates the simulation of the LC-3 computer in Patt & Patel
@@ -457,6 +462,8 @@ int textgui(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p res
 	    wclrtoeol(res->mes_win);
 	    box(res->mes_win, 0, 0);
 	    mvwprintw(res->mes_win, MSGLINE_Y, MSGLINE_X, "Please Enter A Command");
+		 wclrtoeol(res->mes_win);
+	    box(res->mes_win, 0, 0);
 	    wrefresh(res->mes_win);
 	}
 	else if (str[0] == '7') //Toggle Break point
@@ -539,6 +546,9 @@ int textgui(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p res
 	}
 	else if (str[0] == '0')// save file
 	{
+		int start = getaddress(res, mem);
+		int end  = getaddress(res, mem);
+
 	    mvwprintw(res->mes_win, USRINPUT, MSGLINE_X, ">");
 	    wclrtoeol(res->mes_win);
 	    box(res->mes_win, 0, 0);
@@ -546,7 +556,7 @@ int textgui(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p res
 		wclrtoeol(res->mes_win);
 	    box(res->mes_win, 0, 0);
 	    mvwprintw(res->mes_win, USRINPUT, MSGLINE_X, ">");
-	    wgetstr(res->mes_win, str);
+	    wgetstr(res->mes_win, filename);
 	    wclrtoeol(res->mes_win);
 	    box(res->mes_win, 0, 0);
 	    wrefresh(res->mes_win);
@@ -557,7 +567,7 @@ int textgui(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p res
 		mvwprintw(res->mes_win, USRINPUT, MSGLINE_X, ">");
 		wclrtoeol(res->mes_win);
 		box(res->mes_win, 0, 0);
-		mvwprintw(res->mes_win, MSGLINE_Y, MSGLINE_X, "File Already Exist would you like to overwrite?(y,n)");
+		mvwprintw(res->mes_win, MSGLINE_Y, MSGLINE_X, "File Already Exist, Overwrite file?(y,n)");
 		mvwprintw(res->mes_win, USRINPUT, MSGLINE_X, ">");
 		wgetstr(res->mes_win, str);
 		//clear their input
@@ -569,7 +579,7 @@ int textgui(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p res
 		{
 		    file = fopen(filename, "w");
 		    int i;
-		    for (i = 0; i < 100; i++)
+		    for (i = start; i < end; i++)
 		    {
 			fprintf(file, "%04X\n", mem[i]);
 		    }
@@ -580,6 +590,8 @@ int textgui(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p res
 		    wclrtoeol(res->mes_win);
 		    box(res->mes_win, 0, 0);
 		    mvwprintw(res->mes_win, MSGLINE_Y, MSGLINE_X, "File Saved");
+			 wclrtoeol(res->mes_win);
+		    box(res->mes_win, 0, 0);
 		}
 		else
 		{
@@ -594,7 +606,7 @@ int textgui(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p res
 		// file doesn't exist
 		file = fopen(filename, "w");
 		int i;
-		for (i = 0; i < 100; i++)
+		for (i = start; i < end; i++)
 		{
 		    fprintf(file, "%04X\n", mem[i]);
 		}
@@ -604,7 +616,7 @@ int textgui(Cache instructL1[], Cache L1[], CPU_p cpu, Register mem[], RES_p res
 		mvwprintw(res->mes_win, USRINPUT, MSGLINE_X, ">");
 		wclrtoeol(res->mes_win);
 		box(res->mes_win, 0, 0);
-		mvwprintw(res->mes_win, MSGLINE_Y, MSGLINE_X, "File Saved");
+		mvwprintw(res->mes_win, MSGLINE_Y, MSGLINE_X, "File Saved, Please Enter A Command");
 	    }
 	}
 	else
@@ -1080,6 +1092,7 @@ int main(int argc, char *argv[])
     cpu->alu = (ALU_p)malloc(sizeof(ALU_s));
     initscr(); /* start the curses mode */
 
+	// Window set up ALL window constants are relative to these locations 
     res->com_win = newwin(6, 29, 21, 46);
     res->reg_win = newwin(20, 15, 1, 1);
     res->mem_win = newwin(20, 19, 1, 16);
